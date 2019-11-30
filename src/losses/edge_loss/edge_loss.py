@@ -1,7 +1,6 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 if torch.cuda.is_available():
     dtype = torch.cuda.FloatTensor
 else:
