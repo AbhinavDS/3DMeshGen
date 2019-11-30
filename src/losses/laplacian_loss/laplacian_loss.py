@@ -1,42 +1,61 @@
+"""
+Module to calculate laplacian regularization of the vertices after deformation, to prevent too rapid deformation.
+"""
+
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
-from torch.autograd import Variable
+
 if torch.cuda.is_available():
-    dtype = torch.cuda.FloatTensor
+    dtypeF = torch.cuda.FloatTensor
+    dtypeL = torch.cuda.LongTensor
 else:
-    dtype = torch.FloatTensor
+    dtypeF = torch.FloatTensor
+    dtypeL = torch.LongTensor
+
 class LaplacianLoss(nn.Module):
 
 	def __init__(self):
 		super(LaplacianLoss, self).__init__()
-		self.use_cuda = torch.cuda.is_available()        
-
-	def forward(self, pred1, pred2, A):
-		temp_A = Variable(torch.Tensor(A).type(dtype),requires_grad=False)
+		self.use_cuda = torch.cuda.is_available()
+		self.l2_loss = nn.MSELoss(reduction='mean')   
 		
-		lap_pred1 = pred1 - self.centroid(pred1, temp_A)
-		lap_pred2 = pred2 - self.centroid(pred2, temp_A)
-		loss = lap_pred2 - lap_pred1
-		loss = torch.mul(loss,loss)
-		loss = torch.sum(loss)
+	def forward(self, coord1, coord2, A_list):
+		"""
+		Args:
+			coord1: Original position of different points (batch_size x num_points x points_dim)
+			coord2: Final Position of different points (batch_size x num_points x points_dim)
+			A_list: Adjacency List
+
+		Returns:
+			loss: Laplacian regularlised loss.
+		"""
+		
+		temp_A_list = torch.Tensor(A_list).type(dtypeL).requires_grad_(False)
+		lap_coord1 = coord1 - self.centroid(coord1, temp_A_list)
+		lap_coord2 = coord2 - self.centroid(coord2, temp_A_list)
+		loss = self.l2_loss(lap_coord2, lap_coord1) * coord1.size(1)
 		return loss
 
-	def centroid(self, x, A):
-		batch_size, num_points_x, points_dim = x.size()
-		num_neighbours = torch.sum(A, dim=1)
-		neighbours = x.permute(0,2,1)
-		neighbours = neighbours.repeat(1, 1, num_points_x).view(batch_size, points_dim, num_points_x, num_points_x)
+	def centroid(self, coord, A_list):
+		"""
+		Args:
+			coord: Position of different points (batch_size x num_points x points_dim)
+			A_list: Adjacency List (batch_size x num_points x 10): contains invalid indices 
 
-		# Filter out non-neighbours		
-		A = A.unsqueeze(1)
-		A = A.repeat(1, points_dim,1,1)
-		neighbours = torch.mul(neighbours, A)
+		Returns:
+			centroid: Centroid calculated by checking neighbouring poistions.
+		"""
+		dim_size, edge_size = coord.size(2), A_list.size(2)
 
-		neighbours = torch.sum(neighbours, dim = 3)
-		neighbours = neighbours.permute(0,2,1)
-		num_neighbours = num_neighbours.unsqueeze(2).repeat(1,1,2)
-		# print ("NN ",num_neighbours)
-		neighbours = torch.div(neighbours, num_neighbours)
-		assert (not torch.isnan(neighbours).any())
-		return neighbours
+		valid_mask =  A_list >= 0 
+		valid_indices = A_list.clone()
+		valid_indices[~valid_mask] = 0
+		x = coord.unsqueeze(3).expand(*coord.size(), edge_size).permute(0,1,3,2)
+		valid_indices = valid_indices.unsqueeze(3).expand((*A_list.size(), dim_size))
+		vertices = torch.gather(x, 1, valid_indices)
+		valid_mask = valid_mask.unsqueeze(3).expand(*valid_mask.size(), dim_size)
+		sum_neighbours = torch.sum(vertices*valid_mask, 2)
+		num_neighbours = torch.sum((A_list>=0).type(dtypeF), dim=2).unsqueeze(-1)
+		centroid = torch.div(sum_neighbours, num_neighbours)
+
+		return centroid
