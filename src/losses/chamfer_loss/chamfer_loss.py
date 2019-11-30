@@ -13,19 +13,22 @@ class ChamferLoss(nn.Module):
 
 	def forward(self,preds, gts, mask):
 		P = self.batch_pairwise_dist(gts, preds)
-		repeated_mask = mask.unsqueeze(2).repeat(1,1,preds.size(1))
-
-		loss = 0
-		for i in range(gts.size(0)):
-			newP = P[i].masked_select(repeated_mask[i])
-			newP = newP.reshape(1,-1, preds.size(1))
+		
+		# repeated_mask = mask.unsqueeze(2).repeat(1,1,preds.size(1))
+		# loss = 0
+		# for i in range(gts.size(0)):
+		# 	newP = P[i].masked_select(repeated_mask[i])
+		# 	newP = newP.reshape(1,-1, preds.size(1))
 			
-			mins, _ = torch.min(newP, 1)
-			loss_1 = torch.sum(mins)
-			mins, _ = torch.min(newP, 2)
-			loss_2 = torch.sum(mins)
-			loss += (loss_1+loss_2)
-		return loss
+		# 	mins, _ = torch.min(newP, 1)
+		# 	loss_1 = torch.sum(mins)
+		# 	mins, _ = torch.min(newP, 2)
+		# 	loss_2 = torch.sum(mins)
+		# 	loss += (loss_1+loss_2)
+		# return loss
+
+		return torch.min(P, 1)[0], torch.min(P, 2)[0], torch.min(P, 1)[1], torch.min(P, 2)[1] 
+		# min_dist to gt from each pred point, min distance to pred from each gt point, closest point in gt from each pred point, closest point in pred from each gt point 
 
 
 	def batch_pairwise_dist(self,x,y):
