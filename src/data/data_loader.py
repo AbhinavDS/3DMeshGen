@@ -17,6 +17,9 @@ def getMetaData(params):
 		data_size = int(line)
 	return max_vertices, max_vertices*params.feature_scale*params.dim_size, data_size
 
+def upsample():
+	pass
+
 def getDataLoader(params):
 	f_polygons_path = os.path.join(params.data_dir,'polygons_%s.dat'%params.suffix)
 	f_normals_path = os.path.join(params.data_dir,'normals_%s.dat'%params.suffix)
@@ -31,12 +34,13 @@ def getDataLoader(params):
 			with open(f_normals_path, 'r') as f_normals:
 				polygons_line = f_polygons.readline()
 				normals_line = f_normals.readline()
-				
+
 				while(polygons_line != '' or normals_line != ''):
 					iter_count += 1
 
 					#polygons
 					polygons_data_line = np.fromstring(polygons_line, dtype=float, sep=',')
+					print (polygons_data_line)
 					cur_seq_len = int(len(polygons_data_line)/params.dim_size)
 					polygons_data_line = np.expand_dims(np.pad(polygons_data_line,(0,feature_size-len(polygons_data_line)),'constant',constant_values=(0,PAD_TOKEN)),0)
 					
