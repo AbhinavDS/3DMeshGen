@@ -6,10 +6,11 @@ import random
 import numpy as np
 import torchtestcase
 import unittest
+
 if torch.cuda.is_available():
-    dtype = torch.cuda.FloatTensor
+    dtypeF = torch.cuda.FloatTensor
 else:
-    dtype = torch.FloatTensor
+    dtypeF = torch.FloatTensor
 
 
 class TestChamferLoss(torchtestcase.TorchTestCase):

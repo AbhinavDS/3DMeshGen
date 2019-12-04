@@ -7,11 +7,12 @@ import numpy as np
 import torchtestcase
 import unittest
 if torch.cuda.is_available():
-    dtype = torch.cuda.FloatTensor
+    dtypeF = torch.cuda.FloatTensor
 else:
-    dtype = torch.FloatTensor
+    dtypeF = torch.FloatTensor
 from edge_loss import EdgeLoss
-class TestNormalLoss(torchtestcase.TorchTestCase):
+
+class TestEdgeLoss(torchtestcase.TorchTestCase):
 	def setUp(self):
 		self.eloss = EdgeLoss()
 
@@ -39,7 +40,7 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 		self.edge_list = torch.from_numpy(self.edge_list).long()
 
 	def verif_edge(self, pred, A):
-		temp_A = Variable(torch.Tensor(A).type(dtype),requires_grad=False)
+		temp_A = Variable(torch.Tensor(A).type(dtypeF),requires_grad=False)
 		
 		# Might not make sense in 2D
 		edges = self.regularizer(pred, temp_A)
