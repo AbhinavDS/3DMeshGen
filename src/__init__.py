@@ -1,4 +1,9 @@
 import torch
+
+MEAN = 300
+VAR = 300
+PAD_TOKEN = -2
+
 if torch.cuda.is_available():
 	dtypeF = torch.cuda.FloatTensor
 	dtypeL = torch.cuda.LongTensor

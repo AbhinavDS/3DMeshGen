@@ -2,14 +2,15 @@ import numpy as np
 import torch.nn as nn
 import torch
 from torch.autograd import Variable
-from  src import dtype, dtypeL, dtypeB
+from  src import dtypeF, dtypeL, dtypeB
 
 class GCN(nn.Module):
 	def __init__(self, feature_size, dim_size, depth, weights_init='zero', residual_change=False):
 		super(GCN, self).__init__()
+
 		self.residual_change = residual_change
 		self.feature_size = feature_size
-		self.dim_size = dim_size #Coordinate dimension
+		self.dim_size = dim_size # Coordinate dimension
 		self.layers = nn.ModuleList()
 		self.depth = depth
 		self.add_layer(nn.Linear(2*feature_size,feature_size))
@@ -55,7 +56,7 @@ class GCN(nn.Module):
 		#W: feature_size x feature_size
 		#A: batch_size x V x V
 		
-		temp_A = Variable(torch.Tensor(A).type(dtype),requires_grad=False)
+		temp_A = torch.Tensor(A).type(dtypeF).requires_grad_(False)
 		c_f = self.a(self.W_p_c(c_prev))
 		s_f = self.a(self.W_p_s(s_prev))
 		feature_from_state = self.a(self.W_p(torch.cat((c_f,s_f),dim=2)))

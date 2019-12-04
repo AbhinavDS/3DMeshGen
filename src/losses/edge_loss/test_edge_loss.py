@@ -6,10 +6,11 @@ import random
 import numpy as np
 import torchtestcase
 import unittest
-if torch.cuda.is_available():
-    dtypeF = torch.cuda.FloatTensor
-else:
-    dtypeF = torch.FloatTensor
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../../..')
+
+from src import dtypeF, dtypeL, dtypeB
 from edge_loss import EdgeLoss
 
 class TestEdgeLoss(torchtestcase.TorchTestCase):

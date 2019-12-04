@@ -2,13 +2,14 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../../..')
+
+from src import dtypeF, dtypeL, dtypeB
+
 #from pdb import set_trace as brk
 #https://github.com/345ishaan/DenseLidarNet/blob/master/code/chamfer_loss.py
-
-if torch.cuda.is_available():
-	dtypeL = torch.cuda.LongTensor
-else:
-	dtypeL = torch.LongTensor
 
 class ChamferLoss(nn.Module):
 

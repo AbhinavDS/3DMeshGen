@@ -1,10 +1,11 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-if torch.cuda.is_available():
-    dtypeF = torch.cuda.FloatTensor
-else:
-    dtypeF = torch.FloatTensor
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../../..')
+
+from src import dtypeF, dtypeL, dtypeB
     
 class EdgeLoss(nn.Module):
 
