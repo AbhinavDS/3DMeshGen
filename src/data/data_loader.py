@@ -12,8 +12,8 @@ def seedRandom(seed):
 	np.random.seed(seed)
 	random.seed(seed)
 
-def getMetaData(params):
-	f_meta = os.path.join(params.data_dir,'meta_%s.dat'%params.suffix)
+def getMetaData(params, data_dir):
+	f_meta = os.path.join(data_dir,'meta_%s.dat'%params.suffix)
 	max_vertices = 0
 	with open(f_meta) as f:
 		line = f.readline().strip()
@@ -24,20 +24,20 @@ def getMetaData(params):
 		max_total_vertices = int(line)
 	return max_vertices, max_vertices*params.feature_scale*params.dim_size, data_size, max_total_vertices
 
-def upsample(vertices, normals, edges, max_vertices):
+def upsample(vertices, normals, edges, max_total_vertices):
 	new_vertices = np.copy(vertices)
 	new_normals = np.copy(normals)
 	new_edges = edges.copy()
 
 	adj_list = {}
-	for i in range(max_vertices):
+	for i in range(max_total_vertices):
 		adj_list[i] = set()
 
 	for a,b in new_edges:
 		adj_list[a].add(b)
 		adj_list[b].add(a)
 
-	for i in range(max_vertices - len(vertices)):
+	for i in range(max_total_vertices - len(vertices)):
 		new_vertex_id = len(new_vertices)
 		a = random.randint(0, len(new_vertices)-1)
 		b = random.sample(adj_list[a], 1)[0]
@@ -101,10 +101,9 @@ def getPointsAndEdges(params, polygons_data_line, normals_data_line):
 	reshaped_normals = reshaped_normals[valid_vertices]
 	return reshaped_polygon, reshaped_normals, edges 
 
-def getDataLoader(params):
-	f_polygons_path = os.path.join(params.data_dir,'polygons_%s.dat'%params.suffix)
-	f_normals_path = os.path.join(params.data_dir,'normals_%s.dat'%params.suffix)
-	max_vertices, feature_size, _, max_total_vertices = getMetaData(params)
+def getDataLoader(params, data_dir, max_total_vertices):
+	f_polygons_path = os.path.join(data_dir,'polygons_%s.dat'%params.suffix)
+	f_normals_path = os.path.join(data_dir,'normals_%s.dat'%params.suffix)
 	iter_count = 0
 	polygons_data = np.array([])
 	normals_data = np.array([])

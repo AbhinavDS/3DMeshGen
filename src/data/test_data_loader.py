@@ -26,16 +26,16 @@ class TestDataLoader(torchtestcase.TorchTestCase):
 		Setup for all the tests.
 		"""
 		params = argparse.ArgumentParser().parse_args()
-		params.data_dir = 'unittest_data'
 		params.suffix = 'unittest'
 		params.dim_size = 2
 		params.feature_scale = 10
 		params.img_width = 600
 		self.params = params
+		self.data_dir = 'unittest_data'
 		data_loader.seedRandom(15)
 
 	def test_getMetaData(self):
-		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params)
+		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params, self.data_dir)
 		self.assertEqual(max_vertices, 19)
 		self.assertEqual(feature_size, 380)
 		self.assertEqual(data_size, 2)
@@ -88,8 +88,8 @@ class TestDataLoader(torchtestcase.TorchTestCase):
 		#TODO: Exact value matches for vertices, normals, edges, proj_gt
 
 		self.params.batch_size = 1	
-		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params)
-		generator = data_loader.getDataLoader(self.params)
+		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params, self.data_dir)
+		generator = data_loader.getDataLoader(self.params, self.data_dir, max_total_vertices)
 		train_data, train_data_normal, edges, proj_gt = next(generator)
 		self.assertEqual(train_data.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
 		self.assertEqual(train_data_normal.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
@@ -100,8 +100,8 @@ class TestDataLoader(torchtestcase.TorchTestCase):
 		#TODO: Exact value matches for vertices, normals, edges, proj_gt
 
 		self.params.batch_size = 2	
-		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params)
-		generator = data_loader.getDataLoader(self.params)
+		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params, self.data_dir)
+		generator = data_loader.getDataLoader(self.params, self.data_dir, max_total_vertices)
 		train_data, train_data_normal, edges, proj_gt = next(generator)
 		self.assertEqual(train_data.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
 		self.assertEqual(train_data_normal.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
