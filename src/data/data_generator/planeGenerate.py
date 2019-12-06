@@ -179,6 +179,7 @@ def dataGenerator(params):
 	f_normal = open(os.path.join(filepath,'normals_%s.dat'%suffix),'w')
 	num_polygons = total_polygons
 	max_verts = 0
+	max_total_verts = 0
 
 	for i in range(data_size):
 		if params.random_num_polygons:
@@ -186,6 +187,7 @@ def dataGenerator(params):
 		centers = []
 		radii = []
 		polygons = []
+		total_verts = 0
 		for p in range(num_polygons):
 			radius = abs(40 + 40*np.random.rand())
 			overlap = True
@@ -213,7 +215,9 @@ def dataGenerator(params):
 			verts = generatePolygon(ctrX=centers[p][0], ctrY=centers[p][1], aveRadius=radii[p])
 			num_verts = len(verts)
 			max_verts = max(max_verts,num_verts)
+			total_verts += num_verts
 			polygons.append(verts)
+		max_total_verts = max(total_verts, max_total_verts)
 		writePolygons(f, polygons, pad_token)
 		allnormals = writeNormals(f_normal, polygons, pad_token)
 		if params.draw:
@@ -223,7 +227,8 @@ def dataGenerator(params):
 	f_normal.close()
 	f_meta = open(os.path.join(filepath,'meta_%s.dat'%suffix),'w')
 	f_meta.write(str(max_verts)+"\n")
-	f_meta.write(str(data_size))
+	f_meta.write(str(params.data_size)+"\n")
+	f_meta.write(str(max_total_verts))
 	f_meta.close()
 
 def drawPolygons(polygons, proj_pred=None, proj_gt=None, color='red',out='out.png',A=None, line=None):
