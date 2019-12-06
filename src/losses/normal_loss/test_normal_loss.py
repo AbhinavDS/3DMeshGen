@@ -6,11 +6,11 @@ import random
 import numpy as np
 import torchtestcase
 import unittest
-if torch.cuda.is_available():
-    dtype = torch.cuda.FloatTensor
-else:
-    dtype = torch.FloatTensor
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../../..')
 
+from src import dtypeF, dtypeL, dtypeB
 from normal_loss import NormalLoss
 
 class TestNormalLoss(torchtestcase.TorchTestCase):
@@ -72,7 +72,7 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 		return torch.mean(inner_product[mask])
 
 	def verif_forward(self, preds, nearest_gt, gt_normals, A):
-		temp_A = Variable(torch.Tensor(A).type(dtype), requires_grad=False)
+		temp_A = Variable(torch.Tensor(A).type(dtypeF), requires_grad=False)
 		batch_size, num_points, points_dim = preds.size()
 		q = F.normalize(torch.gather(gt_normals, 1, nearest_gt.unsqueeze(2).expand(-1,-1,points_dim)), dim = 2)
 

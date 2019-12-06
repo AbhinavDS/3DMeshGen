@@ -4,13 +4,11 @@ Module to calculate laplacian regularization of the vertices after deformation, 
 
 import torch
 import torch.nn as nn
+import os
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../../..')
 
-if torch.cuda.is_available():
-    dtypeF = torch.cuda.FloatTensor
-    dtypeL = torch.cuda.LongTensor
-else:
-    dtypeF = torch.FloatTensor
-    dtypeL = torch.LongTensor
+from src import dtypeF, dtypeL, dtypeB
 
 class LaplacianLoss(nn.Module):
 
