@@ -5,7 +5,7 @@ import os
 import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/../..')
 
-from src import MEAN, VAR, PAD_TOKEN, dtypeF
+from src import MEAN, VAR, IMG_PAD_TOKEN, dtypeF
 from src.util import utils
 
 def seedRandom(seed):
@@ -22,7 +22,7 @@ def getMetaData(params, data_dir):
 		data_size = int(line)
 		line = f.readline().strip()
 		max_total_vertices = int(line)
-	return max_vertices, max_vertices*params.feature_scale*params.dim_size, data_size, max_total_vertices
+	return max_vertices, max_total_vertices*params.feature_scale*params.dim_size, data_size, max_total_vertices
 
 def upsample(vertices, normals, edges, max_total_vertices):
 	new_vertices = np.copy(vertices)
@@ -101,7 +101,7 @@ def getPointsAndEdges(params, polygons_data_line, normals_data_line):
 	reshaped_normals = reshaped_normals[valid_vertices]
 	return reshaped_polygon, reshaped_normals, edges 
 
-def getDataLoader(params, data_dir, max_total_vertices):
+def getDataLoader(params, data_dir, max_total_vertices, feature_size):
 	f_polygons_path = os.path.join(data_dir,'polygons_%s.dat'%params.suffix)
 	f_normals_path = os.path.join(data_dir,'normals_%s.dat'%params.suffix)
 	iter_count = 0
@@ -123,6 +123,8 @@ def getDataLoader(params, data_dir, max_total_vertices):
 					polygons_data_line = np.fromstring(polygons_line, dtype=float, sep=',')
 					normals_data_line = np.fromstring(normals_line, dtype=float, sep=',')
 
+					image_features = np.expand_dims(np.pad(polygons_data_line,(0,feature_size-len(polygons_data_line)),'constant',constant_values=(0,IMG_PAD_TOKEN)),0)
+					
 					# Get Polygons, Normals, and Edge List; Also upsample points. Also scale points within -1, 1
 					polygons, normals, edges = getPointsAndEdges(params, polygons_data_line, normals_data_line)
 					polygons, normals, edges = upsample(polygons, normals, edges, max_total_vertices)
@@ -138,19 +140,22 @@ def getDataLoader(params, data_dir, max_total_vertices):
 						polygons_data = polygons
 						normals_data = normals
 						edges_data = np.array([edges])
+						image_data = image_features
 						proj_data = proj_data_line
 					else:
 						polygons_data = np.concatenate((polygons_data, polygons),axis=0)
 						normals_data = np.concatenate((normals_data, normals),axis=0)
 						edges_data = np.concatenate((edges_data, np.array([edges])),axis=0)
+						image_data = np.concatenate((image_data, image_features),axis=0)
 						proj_data = np.concatenate((proj_data,proj_data_line),axis=0)
 
 					if iter_count >= params.batch_size:
-						yield polygons_data, normals_data, edges_data, proj_data
+						yield polygons_data, normals_data, edges_data, image_data, proj_data
 						iter_count = 0
 						polygons_data = np.array([])
 						normals_data = np.array([])
 						edges_data = np.array([])
+						image_data = np.array([])
 						proj_data = np.array([])
 
 					polygons_line = f_polygons.readline()

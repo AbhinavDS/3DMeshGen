@@ -6,9 +6,9 @@ from  src import dtype, dtypeL, dtypeB
 from torch_geometric.utils import to_undirected
 
 class VertexAdder(nn.Module):
-	def __init__(self,toss):
+	def __init__(self):
 		super(VertexAdder, self).__init__()
-		self.toss = toss
+		pass
 
 	def forward(self, x_prev, c_prev, edge_index, Pid):#Pid update pending
 		"""
@@ -69,9 +69,6 @@ class VertexAdder(nn.Module):
 			polygon_i = np.expand_dims(polygon_i, 1)
 
 			for j in range(i+1, num_vertices):				
-				# toss = np.random.uniform()
-				# if toss < self.toss:
-				# 	continue
 				# k += 1
 			
 				mask = np.expand_dims(A[:,i,j],1)

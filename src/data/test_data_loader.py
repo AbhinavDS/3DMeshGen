@@ -28,7 +28,7 @@ class TestDataLoader(torchtestcase.TorchTestCase):
 		params = argparse.ArgumentParser().parse_args()
 		params.suffix = 'unittest'
 		params.dim_size = 2
-		params.feature_scale = 10
+		params.feature_scale = 5
 		params.img_width = 600
 		self.params = params
 		self.data_dir = 'unittest_data'
@@ -89,23 +89,26 @@ class TestDataLoader(torchtestcase.TorchTestCase):
 
 		self.params.batch_size = 1	
 		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params, self.data_dir)
-		generator = data_loader.getDataLoader(self.params, self.data_dir, max_total_vertices)
-		train_data, train_data_normal, edges, proj_gt = next(generator)
-		self.assertEqual(train_data.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
-		self.assertEqual(train_data_normal.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
-		self.assertEqual(edges.shape, (self.params.batch_size,))
-		self.assertEqual(proj_gt.shape, (self.params.batch_size, self.params.img_width))
+		generator = data_loader.getDataLoader(self.params, self.data_dir, max_total_vertices, feature_size)
+		for _ in range(2):
+			train_data, train_data_normal, edges, image_feat, proj_gt = next(generator)
+			self.assertEqual(train_data.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
+			self.assertEqual(train_data_normal.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
+			self.assertEqual(edges.shape, (self.params.batch_size,))
+			self.assertEqual(image_feat.shape, (self.params.batch_size, feature_size))
+			self.assertEqual(proj_gt.shape, (self.params.batch_size, self.params.img_width))
 
 	def test_getDataLoaderBatch2(self):
 		#TODO: Exact value matches for vertices, normals, edges, proj_gt
 
 		self.params.batch_size = 2	
 		max_vertices, feature_size, data_size, max_total_vertices = data_loader.getMetaData(self.params, self.data_dir)
-		generator = data_loader.getDataLoader(self.params, self.data_dir, max_total_vertices)
-		train_data, train_data_normal, edges, proj_gt = next(generator)
+		generator = data_loader.getDataLoader(self.params, self.data_dir, max_total_vertices, feature_size)
+		train_data, train_data_normal, edges, image_feat, proj_gt = next(generator)
 		self.assertEqual(train_data.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
 		self.assertEqual(train_data_normal.shape, (self.params.batch_size, max_total_vertices, self.params.dim_size))
 		self.assertEqual(edges.shape, (self.params.batch_size,))
+		self.assertEqual(image_feat.shape, (self.params.batch_size, feature_size))
 		self.assertEqual(proj_gt.shape, (self.params.batch_size, self.params.img_width))
 
 if __name__ == '__main__':
