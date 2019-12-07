@@ -22,7 +22,7 @@ class TestLaplacianLoss(torchtestcase.TorchTestCase):
 		Initial setup for all the tests.
 		"""
 
-		self.loss = laplacian_loss.LaplacianLoss()
+		self.loss = laplacian_loss.LaplacianLoss(use_edge_index=False)
 		random.seed(1)
 		np.random.seed(0)
 		torch.manual_seed(0)
@@ -55,7 +55,7 @@ class TestLaplacianLoss(torchtestcase.TorchTestCase):
 				self.A_list[batch][u][counter[u]] = v
 		
 	def test_centroid(self):
-		coord = torch.rand((self.batch_size, self.num_vertices, self.dim_size))
+		coord = torch.rand((self.batch_size, self.num_vertices, self.dim_size)).type(dtypeF)
 		
 		# Generate Expected Results
 		correct = torch.zeros_like(coord)
@@ -75,14 +75,14 @@ class TestLaplacianLoss(torchtestcase.TorchTestCase):
 
 		# If exact answers are generated, can use Equal for tensors. (Not Almost Equal)
 		self.assertEqual(correct.size(), results.size())
-		self.assertEqual(correct, results)
+		np.testing.assert_almost_equal(correct.cpu().numpy(), results.cpu().numpy())
 		
 
 
 
 	def test_forward(self):
-		coord1 = torch.rand((self.batch_size, self.num_vertices, self.dim_size))
-		coord2 = torch.rand((self.batch_size, self.num_vertices, self.dim_size))
+		coord1 = torch.rand((self.batch_size, self.num_vertices, self.dim_size)).type(dtypeF)
+		coord2 = torch.rand((self.batch_size, self.num_vertices, self.dim_size)).type(dtypeF)
 		
 		# Generate Expected Results
 		lap_coord1 = coord1 - self.loss.centroid(coord1, self.A_list)

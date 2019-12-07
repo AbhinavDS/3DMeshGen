@@ -22,7 +22,7 @@ class TestEdgeLoss(torchtestcase.TorchTestCase):
 		points_dim = 3
 		batch_size = 2
 
-		self.preds = torch.rand(batch_size, num_points, points_dim)
+		self.preds = torch.rand(batch_size, num_points, points_dim).type(dtypeF)
 		self.A = np.zeros((batch_size, num_points, num_points))
 		self.edge_list = np.zeros((batch_size, 2, 2*num_points*num_points))
 		for b in range(batch_size):
@@ -38,7 +38,7 @@ class TestEdgeLoss(torchtestcase.TorchTestCase):
 							self.edge_list[b,0,counter] = j
 							self.edge_list[b,1,counter] = i
 							counter += 1
-		self.edge_list = torch.from_numpy(self.edge_list).long()
+		self.edge_list = torch.from_numpy(self.edge_list).type(dtypeL)
 
 	def verif_edge(self, pred, A):
 		temp_A = Variable(torch.Tensor(A).type(dtypeF),requires_grad=False)

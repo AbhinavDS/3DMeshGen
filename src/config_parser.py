@@ -16,7 +16,7 @@ class Config(object):
 
 		self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 		print('Executing on Device: {}'.format(self.device))
-		input()
+		
 		self.expt_res_dir = os.path.join(self.expt_res_base_dir, self.expt_name)
 		self.log_dir = os.path.join(self.expt_res_dir, 'logs')
 		self.ckpt_dir = os.path.join(self.expt_res_dir, 'ckpt')
@@ -59,8 +59,8 @@ def parse_args():
 	parser.add_argument('--expt_res_base_dir', type=str, help="Path to base directory where all the results and logs related to the experiment will be stored")
 	parser.add_argument('--expt_name', type=str, help="Name of the experiment to uniquely identify its folder")
 	parser.add_argument('--mode', type=str, required=True, help="Specify the mode: {train, eval}")
-	parser.add_argument('--learning_rate_decay_every', type=int, default=100, help="The schedule after which the learning is decayed by half")
-	parser.add_argument('--display_every', type=int, default=1, help="Loss statistics to display after every n batches")
+	parser.add_argument('--learning_rate_decay_every', type=int, default=1000, help="The schedule after which the learning is decayed by half")
+	parser.add_argument('--display_every', type=int, default=10, help="Loss statistics to display after every n batches")
 	parser.add_argument('--drop_prob', default=0.0, type=float, help="Dropout probability for all linear layers")
 	
 	parser.add_argument('--nl', default='relu', choices=['relu', 'gated_tanh', 'tanh'], help="Type of Non linearity to be used in the network (relu, gated_tanh, tanh)")
@@ -69,12 +69,14 @@ def parse_args():
 	
 	parser.add_argument('--weights_init', default='xavier', help="The initializer for weight matrices in the network")
 	parser.add_argument('--gcn_depth', default=5, type=int, help="The depth of the GCN network")
+	parser.add_argument('-ia','--initial_adders', default=2, type=int, help="Initial Adders")
+	parser.add_argument('-gb','--gbottlenecks', default=2, type=int, help="The nums GBottleNecks in Deformer Block")
 	
 
 	# General system running and configuration options
 	parser.add_argument('-l','--load_model_dirpath', type=str, default='', help='load model from path')
 	parser.add_argument('-s','--save_model_dirpath', type=str, default='ckpt/', help='save model to path')
-	parser.add_argument('-bs','--batch_size', type=int, default=100, help='Batch size ')
+	parser.add_argument('-bs','--batch_size', type=int, default=1, help='Batch size ')
 	parser.add_argument('--show_stat', type=int, default=1, help='Show stat at every batch')
 	parser.add_argument('-sf','--sf', type=str, default='', help='suffix_name for pred')
 	parser.add_argument('-n','--num_epochs', type=int, default=2000, help='The number of epochs for training the model')

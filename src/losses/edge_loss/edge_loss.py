@@ -14,8 +14,9 @@ class EdgeLoss(nn.Module):
 		self.use_cuda = torch.cuda.is_available()        
 
 	def forward(self, pred, edge_list):
-		batch_size, num_points, points_dim = pred.size()
-		edge_mask = (edge_list[:,0] != 0) | (edge_list[:,1] != 0) # batch_size x num_edges
-		edges = torch.gather(pred, 1, edge_list[:,0].unsqueeze(2).expand(-1,-1,points_dim)) - torch.gather(pred, 1, edge_list[:,1].unsqueeze(2).expand(-1,-1,points_dim)) #batch_size x num_edges x points_dim
-		loss = torch.sum(edges**2, dim = 2)
+		num_points, points_dim = pred.size()
+
+		edge_mask = (edge_list[0] != 0) | (edge_list[1] != 0) # num_edges
+		edges = torch.gather(pred, 0, edge_list[0].unsqueeze(1).expand(-1,points_dim)) - torch.gather(pred, 0, edge_list[1].unsqueeze(1).expand(-1,points_dim)) #num_edges x points_dim
+		loss = torch.sum(edges**2, dim = 1)
 		return torch.mean(loss[edge_mask])

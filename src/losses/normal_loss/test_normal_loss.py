@@ -25,11 +25,11 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 		points_dim = 3
 		batch_size = 16
 
-		self.preds = torch.rand(batch_size, num_points, points_dim)
-		self.gt_normals = torch.rand(batch_size, num_gt_points, points_dim)
+		self.preds = torch.rand(batch_size, num_points, points_dim).type(dtypeF)
+		self.gt_normals = torch.rand(batch_size, num_gt_points, points_dim).type(dtypeF)
 		self.A = np.zeros((batch_size, num_points, num_points))
 		self.edge_list = np.zeros((batch_size, 2, 2*num_points*num_points))
-		self.nearest_gt = []
+		self.nearest_gt_idx = []
 		for b in range(batch_size):
 			counter = 0
 			for i in range(num_points):
@@ -44,9 +44,9 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 							self.edge_list[b,1,counter] = i
 							counter += 1
 
-			self.nearest_gt.append([random.randint(0, num_gt_points - 1) for p in range(0, num_points)])
-		self.edge_list = torch.from_numpy(self.edge_list).long()
-		self.nearest_gt = torch.from_numpy(np.array(self.nearest_gt))
+			self.nearest_gt_idx.append([random.randint(0, num_gt_points - 1) for p in range(0, num_points)])
+		self.edge_list = torch.from_numpy(self.edge_list).type(dtypeL)
+		self.nearest_gt_idx = torch.from_numpy(np.array(self.nearest_gt_idx)).type(dtypeL)
 
 	def normal_pred(self, x, A):
 		batch_size, num_points_x, points_dim = x.size()
@@ -71,35 +71,20 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 		inner_product = torch.mul(inner_product,inner_product)
 		return torch.mean(inner_product[mask])
 
-	def verif_forward(self, preds, nearest_gt, gt_normals, A):
+	def verif_forward(self, preds, nearest_gt_idx, gt_normals, A):
 		temp_A = Variable(torch.Tensor(A).type(dtypeF), requires_grad=False)
 		batch_size, num_points, points_dim = preds.size()
-		q = F.normalize(torch.gather(gt_normals, 1, nearest_gt.unsqueeze(2).expand(-1,-1,points_dim)), dim = 2)
+		q = F.normalize(torch.gather(gt_normals, 1, nearest_gt_idx.unsqueeze(2).expand(-1,-1,points_dim)), dim = 2)
 
 		# Calculate difference for each pred vertex, use adj mat to filter out non-neighbours
 		diff_neighbours = self.normal_pred(preds, temp_A)
 		# Calculate final loss
 		return self.calculate_loss(diff_neighbours, q, (temp_A != 0))
 	def test_normal(self):
-		e1 = self.nloss.forward(self.preds, self.nearest_gt, self.gt_normals, self.edge_list)
-		e2 = self.verif_forward(self.preds, self.nearest_gt, self.gt_normals, self.A)
+		e1 = self.nloss.forward(self.preds, self.nearest_gt_idx, self.gt_normals, self.edge_list)
+		e2 = self.verif_forward(self.preds, self.nearest_gt_idx, self.gt_normals, self.A)
 		self.assertEqual(e1.size(), e2.size())
 		self.assertAlmostEqual(e1.item(), e2.item(), 6)
-
-
-
-# xp = [preds[0][i][0] for i in range(num_points)] + [preds[0][0][0]]
-# yp = [preds[0][i][1] for i in range(num_points)] + [preds[0][0][1]]
-# xg = [preds[0][i][0] for i in range(num_points)] + [preds[0][0][0]]
-# yg = [preds[0][i][1] for i in range(num_points)] + [preds[0][0][1]]
-# plt.subplot(3,1,1)
-# plt.plot(xp, yp, 'go-', label='line 1', linewidth=2)
-# plt.legend()
-# plt.subplot(3,1,2)
-# plt.plot(xg, yg, 'ro-', label='line 1', linewidth=2)
-# plt.legend()
-# plt.show()
-
 
 if __name__ == '__main__':
 	unittest.main()

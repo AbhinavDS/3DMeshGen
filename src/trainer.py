@@ -3,12 +3,18 @@ Module that controls the training of the graphQA module
 """
 
 import os
+import math
 import json
 import torch
 from torch import nn
 import numpy as np
 from tensorboardX import SummaryWriter
-from  src import dtypeF, dtypeL, dtypeB
+from torch_geometric.utils import to_dense_adj
+import sys
+sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/..')
+from src import dtypeF, dtypeL, dtypeB
+from src.util import utils
+from models.pixel2mesh import Pixel2Mesh as Model
 
 class Trainer:
 
@@ -18,8 +24,7 @@ class Trainer:
 		self.num_epochs = params.num_epochs
 		self.train_generator = train_generator
 		self.val_generator = val_generator
-		# self.model = Model(params)
-		self.model = nn.Linear(10,100)
+		self.model = Model(params)
 		self.device = self.params.device
 
 		# Can be changed to support different optimizers
@@ -43,21 +48,27 @@ class Trainer:
 			self.load_ckpt()
 
 		self.model.to(self.device)
-				
-
+		
 		for epoch in range(self.resume_from_epoch, self.num_epochs):
 
+			total_closs = 0.0
+			total_laploss = 0.0
+			total_nloss = 0.0
+			total_eloss = 0.0
+			total_loss = 0.0
+
+			num_iters = int(math.ceil(self.params.data_size/self.params.batch_size))
 			lr = self.adjust_lr(epoch)
 			self.model.train()
 
 			loss = 0.0
 			train_accuracies = []
 
-			for i, range(int(math.ceil(self.params.data_size/self.params.batch_size))):
+			for i in range(num_iters):
 
 				self.optimizer.zero_grad()
 
-				gt_vertices, gt_normals, edges, gt_image_feats, proj_gt = next(self.train_generator)
+				gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt = next(self.train_generator)
 
 				gt_vertices = torch.Tensor(gt_vertices).type(dtypeF).requires_grad_(False)
 				gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
@@ -65,14 +76,13 @@ class Trainer:
 				#Need some padding conversion
 				gt_image_feats = torch.Tensor(gt_image_feats).type(dtypeF).requires_grad_(False)
 
-				mask = None
-				self.model.forward(gt_image_feats, gt_vertices, gtnormals, mask)
+				x, c = self.model.forward(gt_image_feats, gt_vertices, gt_normals)
 
-				total_closs += self.model.closs/len(train_data)
-				total_laploss += self.model.laploss/len(train_data)
-				total_nloss += self.model.nloss/len(train_data)
-				total_eloss += self.model.eloss/len(train_data)
-				total_loss += self.model.loss/len(train_data)
+				total_closs += self.model.closs/num_iters
+				total_laploss += self.model.laploss/num_iters
+				total_nloss += self.model.nloss/num_iters
+				total_eloss += self.model.eloss/num_iters
+				total_loss += self.model.loss/num_iters
 			
 				self.model.loss.backward()
 
@@ -81,11 +91,14 @@ class Trainer:
 				self.optimizer.step()
 				
 				if i % self.params.display_every == 0:
-					print('Train Epoch: {}, Iteration: {}, Loss: {}'.format(epoch, i, model.loss))
+					print(f'Train Epoch: {epoch}, Iteration: {i}, Loss: {self.model.loss}, CLoss: {self.model.closs}, NLoss: {self.model.nloss}, ELoss: {self.model.eloss}, LapLoss: {self.model.loss}')
+					# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
+					utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
+				
 
 			train_acc = np.mean(train_accuracies)
 			self.save_ckpt(save_best=False)
-			self.write_status(epoch, self.model.loss)
+			self.write_status(epoch, total_loss.item())
 			
 	
 	
@@ -93,7 +106,7 @@ class Trainer:
 
 		# Check for the status file corresponding to the model
 		status_file = os.path.join(self.params.ckpt_dir, 'status.json')
-
+		print (status_file)
 		if os.path.exists(status_file):
 			with open(status_file, 'r') as f:
 				status = json.load(f)			

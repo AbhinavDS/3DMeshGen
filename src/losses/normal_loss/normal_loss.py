@@ -13,12 +13,12 @@ class NormalLoss(nn.Module):
 		super(NormalLoss, self).__init__()
 		self.use_cuda = torch.cuda.is_available()        
 
-	def forward(self, preds, nearest_gt, gt_normals, edge_list):
-		batch_size, num_points, points_dim = preds.size()
-		edge_mask = (edge_list[:,0] != 0) | (edge_list[:,1] != 0) # batch_size x num_edges
-		nearest_gtn = torch.gather(gt_normals, 1, nearest_gt.unsqueeze(2).expand(-1,-1,points_dim)) #batch_size x num_vertices x points_dim
-		nearest_gtn = F.normalize(torch.gather(nearest_gtn, 1, edge_list[:,0].unsqueeze(2).expand(-1,-1,points_dim)), dim = 2) #batch_size x num_edges x points_dim
-		edges = F.normalize(torch.gather(preds, 1, edge_list[:,0].unsqueeze(2).expand(-1,-1,points_dim)) - torch.gather(preds, 1, edge_list[:,1].unsqueeze(2).expand(-1,-1,points_dim)), dim=2) #batch_size x num_edges x points_dim
+	def forward(self, pred, nearest_gt_idx, gt_normals, edge_list):
+		num_points, points_dim = pred.size()
+		edge_mask = (edge_list[0] != 0) | (edge_list[1] != 0) # num_edges
+		nearest_gt_normal = torch.gather(gt_normals, 1, nearest_gt_idx.unsqueeze(2).expand(-1,-1,points_dim)).squeeze(0) #num_vertices x points_dim
+		nearest_gt_normal = F.normalize(torch.gather(nearest_gt_normal, 0, edge_list[0].unsqueeze(1).expand(-1,points_dim)), dim = 1) #num_edges x points_dim
+		edges = F.normalize(torch.gather(pred, 0, edge_list[0].unsqueeze(1).expand(-1,points_dim)) - torch.gather(pred, 0, edge_list[1].unsqueeze(1).expand(-1,points_dim)), dim=1) #num_edges x points_dim
 		
-		loss = torch.sum(edges*nearest_gtn, 2)**2
+		loss = torch.sum(edges*nearest_gt_normal, 1)**2
 		return torch.mean(loss[edge_mask])
