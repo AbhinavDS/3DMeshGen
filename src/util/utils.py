@@ -61,7 +61,7 @@ def drawPolygons(polygons, polygonsgt, edgesgt, proj_pred=None, proj_gt=None, co
 	for a, b in edgesgt:
 		draw.ellipse((polygonsgt[a][0] - 4, polygonsgt[a][1] - 4, polygonsgt[a][0]  + 4, polygonsgt[a][1] + 4), fill='green')
 		draw.ellipse((polygonsgt[b][0] - 4, polygonsgt[b][1] - 4, polygonsgt[b][0]  + 4, polygonsgt[b][1] + 4), fill='green')
-		draw.line((tuple(polygonsgt[a]),tuple(polygonsgt[b])), width=2, fill=black )
+		draw.line((tuple(polygonsgt[a]),tuple(polygonsgt[b])), width=2, fill='green' )
 
 	# Shadow
 	if proj_gt is not None:

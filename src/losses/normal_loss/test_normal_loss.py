@@ -23,7 +23,7 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 		num_points = 100
 		num_gt_points = 200
 		points_dim = 3
-		batch_size = 16
+		batch_size = 1
 
 		self.preds = torch.rand(batch_size, num_points, points_dim).type(dtypeF)
 		self.gt_normals = torch.rand(batch_size, num_gt_points, points_dim).type(dtypeF)
@@ -81,7 +81,7 @@ class TestNormalLoss(torchtestcase.TorchTestCase):
 		# Calculate final loss
 		return self.calculate_loss(diff_neighbours, q, (temp_A != 0))
 	def test_normal(self):
-		e1 = self.nloss.forward(self.preds, self.nearest_gt_idx, self.gt_normals, self.edge_list)
+		e1 = self.nloss.forward(self.preds.squeeze(0), self.nearest_gt_idx, self.gt_normals, self.edge_list.squeeze(0))
 		e2 = self.verif_forward(self.preds, self.nearest_gt_idx, self.gt_normals, self.A)
 		self.assertEqual(e1.size(), e2.size())
 		self.assertAlmostEqual(e1.item(), e2.item(), 6)

@@ -60,7 +60,7 @@ def parse_args():
 	parser.add_argument('--expt_name', type=str, help="Name of the experiment to uniquely identify its folder")
 	parser.add_argument('--mode', type=str, required=True, help="Specify the mode: {train, eval}")
 	parser.add_argument('--learning_rate_decay_every', type=int, default=1000, help="The schedule after which the learning is decayed by half")
-	parser.add_argument('--display_every', type=int, default=10, help="Loss statistics to display after every n batches")
+	parser.add_argument('--display_every', type=int, default=100, help="Loss statistics to display after every n batches")
 	parser.add_argument('--drop_prob', default=0.0, type=float, help="Dropout probability for all linear layers")
 	
 	parser.add_argument('--nl', default='relu', choices=['relu', 'gated_tanh', 'tanh'], help="Type of Non linearity to be used in the network (relu, gated_tanh, tanh)")
@@ -68,9 +68,9 @@ def parse_args():
 	
 	
 	parser.add_argument('--weights_init', default='xavier', help="The initializer for weight matrices in the network")
-	parser.add_argument('--gcn_depth', default=5, type=int, help="The depth of the GCN network")
+	parser.add_argument('--gcn_depth', default=2, type=int, help="The depth of the GCN network")
 	parser.add_argument('-ia','--initial_adders', default=2, type=int, help="Initial Adders")
-	parser.add_argument('-gb','--gbottlenecks', default=2, type=int, help="The nums GBottleNecks in Deformer Block")
+	# parser.add_argument('-gb','--gbottlenecks', default=1, type=int, help="The nums GBottleNecks in Deformer Block")
 	
 
 	# General system running and configuration options
@@ -80,13 +80,12 @@ def parse_args():
 	parser.add_argument('--show_stat', type=int, default=1, help='Show stat at every batch')
 	parser.add_argument('-sf','--sf', type=str, default='', help='suffix_name for pred')
 	parser.add_argument('-n','--num_epochs', type=int, default=2000, help='The number of epochs for training the model')
-	parser.add_argument('-d','--depth', type=int, default=0, help='Deformer depth')
 	parser.add_argument('-lr','--lr', type=float, default=1e-5, help='See variable name')
 	parser.add_argument('--step_size', type=int, default=100, help='See variable name')
 	parser.add_argument('--gamma', type=float, default=0.8, help='See variable name')
-	parser.add_argument('--lambda_n', type=float, default=1e-5, help='See variable name')
-	parser.add_argument('--lambda_lap', type=float, default=0.2, help='See variable name')
-	parser.add_argument('--lambda_e', type=float, default=0.1, help='See variable name')
+	parser.add_argument('--lambda_n', type=float, default=1e-2, help='See variable name')
+	parser.add_argument('--lambda_lap', type=float, default=0.1, help='See variable name')
+	parser.add_argument('--lambda_e', type=float, default=0.05, help='See variable name')
 	parser.add_argument('--train_dir', type=str, default='', help='See variable name')
 	parser.add_argument('--test_dir', type=str, default='', help='See variable name')
 	parser.add_argument('--val_dir', type=str, default='', help='See variable name')

@@ -2,6 +2,7 @@
 Main module that controls the complete graph QA pipeline
 """
 
+import math
 from config_parser import parse_args
 from trainer import Trainer
 # from evaluator import Evaluator
@@ -20,6 +21,9 @@ if __name__ == "__main__":
 		args.feature_size = max(train_feature_size, val_feature_size)
 		args.data_size = max(train_data_size, val_data_size)
 		args.max_total_vertices = max(train_max_total_vertices, val_max_total_vertices)
+
+		# Adjust args.gbottlenecks accordingly
+		args.gbottlenecks = int(math.log(args.max_vertices))
 
 		train_generator = getDataLoader(args, args.train_dir, args.max_total_vertices, args.feature_size)
 		val_generator = getDataLoader(args, args.val_dir, args.max_total_vertices, args.feature_size)

@@ -13,18 +13,19 @@ from src.modules.vertex_adder.vertex_adder import VertexAdder
 from src import dtypeF, dtypeL, dtypeB
 
 class DeformerBlock(nn.Module):
-	def __init__(self, params, num_gbs, initial_adders, embed, weights_init='zero', residual_change=False):
+	def __init__(self, params, num_gbs, initial_adders, embed, weights_init='xavier', residual_change=False):
 		super(DeformerBlock, self).__init__()
 		self.params = params
 		self.num_gbs = num_gbs
 		self.initial_adders = initial_adders
 		self.embed = embed
 		self.embed_layer = nn.Linear(self.params.dim_size, self.params.feature_size)
-		self.a = nn.ReLU() # nn.Tanh()
+		#self.activation = nn.ReLU()
+		self.activation = nn.Tanh()
 		self.residual_change = residual_change
 		assert (self.num_gbs > 0, "Number of gbs is 0")
 		
-		self.deformer_block = [GBottleNeck(self.params.feature_size, self.params.dim_size, self.params.depth, weights_init=weights_init).cuda() for _ in range(self.num_gbs)]
+		self.deformer_block = [GBottleNeck(self.params.feature_size, self.params.dim_size, self.params.gcn_depth, weights_init=weights_init).cuda() for _ in range(self.num_gbs)]
 		self.adder = VertexAdder().cuda()
 		self.projection = GProjection(self.params.feature_size, self.params.dim_size, weights_init = weights_init)
 
@@ -54,7 +55,7 @@ class DeformerBlock(nn.Module):
 		self.nloss = 0.0
 		self.eloss = 0.0
 
-	def forward(self, batch_x, batch_c, image_features, Pid, gt, gtnormals):
+	def forward(self, batch_x, batch_c, image_features, Pid, gt, gt_normals):
 		"""
 		Args:
 			c: coordinates
@@ -63,7 +64,7 @@ class DeformerBlock(nn.Module):
 			A:
 			Pid:
 			gt:
-			gtnormals:
+			gt_normals:
 		"""
 		self.set_loss_to_zero()
 		total_blocks = self.initial_adders + self.num_gbs
@@ -72,7 +73,7 @@ class DeformerBlock(nn.Module):
 			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
 		
 		if self.embed:
-			batch_x.x = self.a(self.embed_layer(batch_c.x))
+			batch_x.x = self.activation(self.embed_layer(batch_c.x))
 
 		for gb in range(self.num_gbs):
 			if gb + self.initial_adders < self.num_gbs:
@@ -83,15 +84,16 @@ class DeformerBlock(nn.Module):
 			batch_x.x = torch.cat((batch_x.x,fetched_feature), dim = -1)
 			batch_x.x, c_out = self.deformer_block[gb].forward(batch_x)
 			if self.residual_change:
-				batch_c.x = batch_c.x + c_out
+				batch_c.x = 0.5 * (batch_c.x + c_out)
 			else:
 				batch_c.x = c_out
 			
 			c = batch_c.x
-			self.laploss += self.criterionL(c_prev, c, batch_c.edge_index)
+			factor = 1#self.num_gbs - gb
+			self.laploss += self.criterionL(c_prev, c, batch_c.edge_index) * factor
 			dist1, dist2, idx1, _ = self.criterionC(c, gt)
-			self.closs += ChamferLoss.getChamferLoss(dist1, dist2)
-			self.eloss += self.criterionE(c, batch_c.edge_index)
-			self.nloss += self.criterionN(c, idx1, gtnormals, batch_c.edge_index)
+			self.closs += ChamferLoss.getChamferLoss(dist1, dist2) * factor
+			self.eloss += self.criterionE(c, batch_c.edge_index) * factor
+			self.nloss += self.criterionN(c, idx1, gt_normals, batch_c.edge_index) * factor
 		self.loss = self.closs + self.params.lambda_n*self.nloss + self.params.lambda_lap*self.laploss + self.params.lambda_e*self.eloss
 		return batch_x, batch_c, Pid

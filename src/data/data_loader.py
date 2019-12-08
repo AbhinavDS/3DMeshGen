@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import math
 import random
 import os
 import sys
@@ -24,7 +25,15 @@ def getMetaData(params, data_dir):
 		max_total_vertices = int(line)
 	return max_vertices, max_total_vertices*params.feature_scale*params.dim_size, data_size, max_total_vertices
 
-def upsample(vertices, normals, edges, max_total_vertices):
+
+def normalise(normal):
+	norm = math.sqrt(normal[1]**2+normal[0]**2)
+	return np.array([normal[0]/norm, normal[1]/norm])
+
+def upsample(vertices, normals, edges, max_total_vertices, seeded=False):
+	if seeded:
+		seedRandom(10)
+
 	new_vertices = np.copy(vertices)
 	new_normals = np.copy(normals)
 	new_edges = edges.copy()
@@ -58,8 +67,8 @@ def upsample(vertices, normals, edges, max_total_vertices):
 		new_vertex = 0.5 * (new_vertices[a] + new_vertices[b])
 		new_vertices = np.concatenate((new_vertices, np.expand_dims(new_vertex, axis=0)))
 		
-		new_normal = (new_normals[a] + new_normals[b])
-		new_normal /= np.linalg.norm(new_normal)
+		new_normal = normalise([new_vertices[a][1]-new_vertices[b][1],new_vertices[a][0]-new_vertices[b][1]])
+		# print (new_normal, new_normals[a], new_normals[b])
 		new_normals = np.concatenate((new_normals, np.expand_dims(new_normal, axis=0)))
 	return new_vertices, new_normals, new_edges
 
@@ -127,7 +136,7 @@ def getDataLoader(params, data_dir, max_total_vertices, feature_size):
 					
 					# Get Polygons, Normals, and Edge List; Also upsample points. Also scale points within -1, 1
 					polygons, normals, edges = getPointsAndEdges(params, polygons_data_line, normals_data_line)
-					polygons, normals, edges = upsample(polygons, normals, edges, max_total_vertices)
+					polygons, normals, edges = upsample(polygons, normals, edges, max_total_vertices, seeded=True)
 					polygons = (polygons - MEAN)/VAR
 					polygons = np.expand_dims(polygons, 0)
 					normals = np.expand_dims(normals, 0)

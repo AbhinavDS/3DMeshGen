@@ -191,7 +191,7 @@ def dataGenerator(params):
 				if(not overlap):
 					centers.append([c_x,c_y])
 					radii.append(radius)
-			num_verts = int(np.ceil(abs(params.sigma*np.random.randn())+1e-10)) + 2 #3*(2**np.random.randint(0,4))
+			num_verts = random.randint(5,10)#int(np.ceil(abs(params.sigma*np.random.randn())+1e-10)) + 2 #3*(2**np.random.randint(0,4))
 			max_verts = max(num_verts,max_verts)
 			total_verts += num_verts
 			verts = generatePolygon(ctrX=centers[p][0], ctrY=centers[p][1], aveRadius=radii[p], irregularity=0.35, spikeyness=0.2, numVerts=num_verts)

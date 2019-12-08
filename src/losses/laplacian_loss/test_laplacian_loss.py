@@ -87,7 +87,7 @@ class TestLaplacianLoss(torchtestcase.TorchTestCase):
 		# Generate Expected Results
 		lap_coord1 = coord1 - self.loss.centroid(coord1, self.A_list)
 		lap_coord2 = coord2 - self.loss.centroid(coord2, self.A_list)
-		correct = torch.sum((lap_coord2 - lap_coord1)**2)/(self.batch_size * self.dim_size)
+		correct = torch.sum((lap_coord2 - lap_coord1)**2)/(self.batch_size * self.dim_size * self.num_vertices)
 
 		# Check loss generation
 		results = self.loss.forward(coord1, coord2, self.A_list.cpu().numpy())

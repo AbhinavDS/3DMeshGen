@@ -1,17 +1,16 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 class GProjection(nn.Module):
 
-	def __init__(self, feature_size, dim_size, weights_init = 'zero'):
+	def __init__(self, feature_size, dim_size, weights_init = 'normal'):
 		super(GProjection, self).__init__()
 
 		self.W_p_c = nn.Linear(dim_size, feature_size)
 		self.W_p_s = nn.Linear(feature_size, feature_size)
 		self.W_p = nn.Linear(2*feature_size, feature_size)
-		self.activation = F.relu
-		#self.activation = nn.Tanh()
-		self.dropout = nn.Dropout()
+		#self.activation = nn.ReLU()
+		self.activation = nn.Tanh()
+		# self.dropout = nn.Dropout()
 		self.dropout = nn.Dropout(p=0)
 		
 		if weights_init == 'zero':

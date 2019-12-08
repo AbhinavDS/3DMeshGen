@@ -19,7 +19,7 @@ class Pixel2Mesh(nn.Module):
 		self.device = params.device
 		self.params = params
 
-		self.db1 = DeformerBlock(self.params, self.params.gbottlenecks, self.params.initial_adders, True, weights_init='xavier')
+		self.db1 = DeformerBlock(self.params, self.params.gbottlenecks, self.params.initial_adders, False, weights_init='xavier', residual_change=False)
 		# db2 = DeltaDeformerBlock(self.params, self.params.num_gcns2, 0, False, residual_change=True)
 
 	def create_start_data(self):

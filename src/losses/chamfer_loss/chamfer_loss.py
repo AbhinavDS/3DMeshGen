@@ -16,7 +16,7 @@ class ChamferLoss(nn.Module):
 	def __init__(self):
 		super(ChamferLoss, self).__init__()
 
-	def forward(self,preds, gts):
+	def forward(self, preds, gts):
 		P = self.batch_pairwise_dist(gts, preds.unsqueeze(0))
 
 		# min_dist to gt from each pred point, min distance to pred from each gt point, closest point in gt from each pred point, closest point in pred from each gt point 
