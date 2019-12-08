@@ -12,16 +12,12 @@ from .gprojection import GProjection
 from src.modules.vertex_adder.vertex_adder import VertexAdder
 from src import dtypeF, dtypeL, dtypeB
 
-class DeformerBlock(nn.Module):
-	def __init__(self, params, num_gbs, initial_adders, embed, weights_init='xavier', residual_change=False):
-		super(DeformerBlock, self).__init__()
+class DeltaDeformerBlock(nn.Module):
+	def __init__(self, params, num_gbs, weights_init='xavier', residual_change=False):
+		super(Delta, DeformerBlock, self).__init__()
 		self.params = params
 		self.num_gbs = num_gbs
-		self.initial_adders = initial_adders
-		self.embed = embed
-		self.embed_layer = nn.Linear(self.params.dim_size, self.params.feature_size)
-		#self.activation = nn.ReLU()
-		self.activation = nn.Tanh()
+		
 		self.residual_change = residual_change
 		assert (self.num_gbs > 0, "Number of gbs is 0")
 		
@@ -67,17 +63,8 @@ class DeformerBlock(nn.Module):
 			gt_normals:
 		"""
 		self.set_loss_to_zero()
-
-		for _ in range(self.initial_adders):
-			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
-		
-		if self.embed:
-			batch_x.x = self.activation(self.embed_layer(batch_c.x))
-
 		for gb in range(self.num_gbs):
-			if gb + self.initial_adders < self.num_gbs:
-				batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
-
+			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
 			c_prev = batch_c.x
 			fetched_feature = self.projection(batch_c.x, image_features)
 			batch_x.x = torch.cat((batch_x.x,fetched_feature), dim = -1)
