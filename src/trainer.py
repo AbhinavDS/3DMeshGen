@@ -16,10 +16,6 @@ from src import dtypeF, dtypeL, dtypeB
 from src.util import utils
 from models.pixel2mesh import Pixel2Mesh as Model
 
-from src.losses.chamfer_loss.chamfer_loss import ChamferLoss
-from src.losses.edge_loss.edge_loss import EdgeLoss
-from src.losses.normal_loss.normal_loss import NormalLoss
-
 class Trainer:
 
 	def __init__(self, params, train_generator, val_generator):
@@ -61,15 +57,14 @@ class Trainer:
 			total_eloss = 0.0
 			total_loss = 0.0
 
-			num_iters = int(math.ceil(self.params.data_size/self.params.batch_size))
+			num_iters = int(math.ceil(self.params.train_data_size/self.params.batch_size))
 			lr = self.adjust_lr(epoch)
 			for g in self.optimizer.param_groups:
 				g['lr'] = lr
 			self.model.train()
 
 			loss = 0.0
-			train_accuracies = []
-
+			
 			for i in range(num_iters):
 
 				self.optimizer.zero_grad()
@@ -90,20 +85,54 @@ class Trainer:
 			
 				self.model.loss.backward()
 
-				# nn.utils.clip_grad_norm_(self.model.parameters(), 0.25)
+				nn.utils.clip_grad_norm_(self.model.parameters(), 0.25)
 				
 				self.optimizer.step()
 				
 				if i % self.params.display_every == 0:
 					print(f'Train Epoch: {epoch}, Iteration: {i}, LR: {lr}, Loss: {self.model.loss}, CLoss: {self.model.closs}, NLoss: {self.model.nloss}, ELoss: {self.model.eloss}, LapLoss: {self.model.laploss}')
 					# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
-					utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
-				
+					utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../train_out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
+			
+			eval_loss = self.eval(epoch)
 
-			train_acc = np.mean(train_accuracies)
 			self.save_ckpt(save_best=False)
 			self.write_status(epoch, total_loss.item())
+	
+	def eval(self, epoch):
+		total_closs = 0.0
+		total_laploss = 0.0
+		total_nloss = 0.0
+		total_eloss = 0.0
+		total_loss = 0.0
+
+		num_iters = int(math.ceil(self.params.val_data_size/self.params.batch_size))
+		loss = 0.0
+		self.model.eval()
+
+		for i in range(num_iters):
+
+			self.optimizer.zero_grad()
+
+			gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt = next(self.val_generator)
 			
+			gt_vertices = torch.Tensor(gt_vertices).type(dtypeF).requires_grad_(False)
+			gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
+			gt_image_feats = torch.Tensor(gt_image_feats).type(dtypeF).requires_grad_(False)
+
+			x, c = self.model.forward(gt_image_feats, gt_vertices, gt_normals)
+
+			total_closs += self.model.closs/num_iters
+			total_laploss += self.model.laploss/num_iters
+			total_nloss += self.model.nloss/num_iters
+			total_eloss += self.model.eloss/num_iters
+			total_loss += self.model.loss/num_iters
+		
+		print(f'Validation Epoch: {epoch}, Val Epoch Loss: {total_loss}, Val Epoch CLoss: {total_closs}, Val Epoch NLoss: {total_nloss}, Val Epoch ELoss: {total_eloss}, Val EpochLapLoss: {total_laploss}')
+		# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
+		utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../val_out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
+
+		self.model.train()
 	
 	
 	def check_restart_conditions(self):

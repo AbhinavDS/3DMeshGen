@@ -221,8 +221,7 @@ def dataGenerator(params):
 		writePolygons(f, polygons, pad_token)
 		allnormals = writeNormals(f_normal, polygons, pad_token)
 		if params.draw:
-			drawPolygons(polygons)#,normals = allnormals)
-		#w = input("we")
+			drawPolygons(polygons, out=os.path.join(filepath,'out_%s.png'%suffix))
 	f.close()
 	f_normal.close()
 	f_meta = open(os.path.join(filepath,'meta_%s.dat'%suffix),'w')
