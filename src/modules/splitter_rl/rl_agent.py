@@ -52,7 +52,7 @@ class RLAgent:
 		torch.manual_seed(self.params.seed)
 		np.random.seed(self.params.seed)
 		
-	def train(self, deformer_block, init_data, image_features, gt, gt_normals, proj_gt, gt_edges):
+	def train(self, deformer_block, init_data, image_features, gt, gt_normals, proj_gt, gt_edges, gt_num_polygons):
 		
 		for i_episode in range(self.params.rl_num_episodes):
 			episode_reward = 0
@@ -80,10 +80,9 @@ class RLAgent:
 						self.writer.add_scalar('entropy_temprature/alpha', alpha, self.updates)
 						self.updates += 1
 
-				data, reward, done, _ = self.splitter.split_and_reward(data, action, gt, gt_edges)
-				data = self.db1.forward(data[0], data[1], image_features, data[2], gt, gt_normals)
-				# Collect losses
-
+				data, reward, done, add_loss = self.splitter.split_and_reward(data, action, gt, gt_edges, gt_num_polygons)
+				data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = add_loss)
+				
 				next_state = self.create_state(data, image_features, proj_gt)
 				episode_steps += 1
 				self.total_numsteps += 1
@@ -113,8 +112,8 @@ class RLAgent:
 				while not done:
 					action = self.agent.select_action(state, eval=True)
 
-					data, reward, done, _ = splitter(data, action, gt) # Step, TODO: Splitter
-					# Add deformer
+					data, reward, done, _ = self.splitter.split_and_reward(data, action, gt, gt_edges, gt_num_polygons)
+					data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = False)
 					
 					episode_reward += reward
 					state = self.create_state(data, image_features, proj_gt)

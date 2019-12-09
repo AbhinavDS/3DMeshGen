@@ -49,7 +49,7 @@ class Pixel2Mesh(nn.Module):
 		batch_pid = Batch.from_data_list(data_list_pid)
 		return batch_x, batch_c, batch_pid
 
-	def forward(self, image_features, gt, gt_normals, proj_gt, gt_edges = None):
+	def forward(self, image_features, gt, gt_normals, proj_gt, gt_edges = None, gt_num_polygons = None):
 		init_batch_x, init_batch_c, init_batch_pid = self.create_start_data()
 		batch_x, batch_c, batch_pid = self.db1.forward(init_batch_x, init_batch_c, image_features, init_batch_pid, gt, gtnormals)
 		self.closs = self.db1.closs
