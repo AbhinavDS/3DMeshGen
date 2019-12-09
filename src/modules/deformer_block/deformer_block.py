@@ -83,7 +83,7 @@ class DeformerBlock(nn.Module):
 			batch_x.x = torch.cat((batch_x.x,fetched_feature), dim = -1)
 			batch_x.x, c_out = self.deformer_block[gb].forward(batch_x)
 			if self.residual_change:
-				batch_c.x = 0.5 * (batch_c.x + c_out)
+				batch_c.x = self.activation(batch_c.x + c_out)
 			else:
 				batch_c.x = c_out
 			

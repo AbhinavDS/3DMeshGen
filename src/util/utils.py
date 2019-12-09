@@ -87,3 +87,45 @@ def drawPolygons(polygons, polygonsgt, edgesgt, proj_pred=None, proj_gt=None, co
 		draw.line(((x1,y1),(x2,y2)), width=5, fill=black)
 	im.save(out)
 
+
+def flatten_pred(c,A,params):
+	#c:  num_vertsx2
+	#A:  num_vertsxnum_verts
+	num_verts = c.shape[0]
+	vertFlags = np.zeros(num_verts)
+	proj_data_line = np.zeros(params.img_width,dtype=float)
+	v = 0
+	minx = params.img_width - 1
+	maxx = 0
+	
+	start = v
+	minx = min(minx,c[v,0])
+	maxx = max(maxx,c[v,0])
+	vertFlags[v] = 1
+	for j in range(num_verts):
+		if A[v,j] and vertFlags[j]==0:
+			v = j
+			break
+	while True:
+		minx = min(minx,c[v,0])
+		maxx = max(maxx,c[v,0])
+		vertFlags[v] = 1
+		found_nbr = False
+		for j in range(num_verts):
+			if A[v,j] and vertFlags[j]==0:
+				v = j
+				found_nbr = True
+				break
+		if not found_nbr:
+			proj_data_line[minx:maxx+1] = 1.0
+			minx = params.img_width - 1
+			maxx = 0
+			found_poly = False
+			for j in range(num_verts):
+				if vertFlags[j]==0:
+					v = j
+					found_poly = True
+					break
+			if not found_poly:
+				break
+	return proj_data_line

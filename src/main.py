@@ -14,13 +14,14 @@ if __name__ == "__main__":
 	args.gen_config()
 
 	# Calculate Meta Parameters from dataset
-	train_max_vertices, train_feature_size, train_data_size, train_max_total_vertices = getMetaData(args, args.train_dir)
-	val_max_vertices, val_feature_size, val_data_size, val_max_total_vertices = getMetaData(args, args.val_dir)
-	test_max_vertices, test_feature_size, test_data_size, test_max_total_vertices = getMetaData(args, args.test_dir)
+	train_max_vertices, train_feature_size, train_data_size, train_max_total_vertices, train_max_polygons = getMetaData(args, args.train_dir)
+	val_max_vertices, val_feature_size, val_data_size, val_max_total_vertices, val_max_polygons = getMetaData(args, args.val_dir)
+	test_max_vertices, test_feature_size, test_data_size, test_max_total_vertices, test_max_polygons = getMetaData(args, args.test_dir)
 	args.max_vertices = max(train_max_vertices, val_max_vertices, test_max_vertices)
 	args.feature_size = max(train_feature_size, val_feature_size, test_feature_size)
 	args.data_size = max(train_data_size, val_data_size, test_data_size)
 	args.max_total_vertices = max(train_max_total_vertices, val_max_total_vertices, test_max_total_vertices)
+	args.max_polygons = max(train_max_polygons, val_max_polygons, test_max_polygons)
 	args.train_data_size = train_data_size
 	args.val_data_size = val_data_size
 	args.test_data_size = test_data_size

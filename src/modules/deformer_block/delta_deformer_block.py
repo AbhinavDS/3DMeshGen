@@ -14,10 +14,11 @@ from src import dtypeF, dtypeL, dtypeB
 
 class DeltaDeformerBlock(nn.Module):
 	def __init__(self, params, num_gbs, weights_init='xavier', residual_change=False):
-		super(Delta, DeformerBlock, self).__init__()
+		super(DeltaDeformerBlock, self).__init__()
 		self.params = params
 		self.num_gbs = num_gbs
-		
+		#self.activation = nn.ReLU()
+		self.activation = nn.Tanh()
 		self.residual_change = residual_change
 		assert (self.num_gbs > 0, "Number of gbs is 0")
 		
@@ -29,12 +30,7 @@ class DeltaDeformerBlock(nn.Module):
 		self.criterionN = NormalLoss()
 		self.criterionL = LaplacianLoss()
 		self.criterionE = EdgeLoss()
-		self.set_loss_to_zero()	
-		
-		if weights_init == 'xavier':
-			nn.init.xavier_uniform_(self.embed_layer.weight)
-		elif weights_init == 'zero':
-			nn.init.constant_(self.embed_layer.weight,0)
+		self.set_loss_to_zero()
 
 
 		
@@ -51,7 +47,7 @@ class DeltaDeformerBlock(nn.Module):
 		self.nloss = 0.0
 		self.eloss = 0.0
 
-	def forward(self, batch_x, batch_c, image_features, Pid, gt, gt_normals):
+	def forward(self, batch_x, batch_c, image_features, Pid, gt, gt_normals, add_loss = True):
 		"""
 		Args:
 			c: coordinates
@@ -62,24 +58,25 @@ class DeltaDeformerBlock(nn.Module):
 			gt:
 			gt_normals:
 		"""
-		self.set_loss_to_zero()
 		for gb in range(self.num_gbs):
 			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
+
 			c_prev = batch_c.x
 			fetched_feature = self.projection(batch_c.x, image_features)
 			batch_x.x = torch.cat((batch_x.x,fetched_feature), dim = -1)
 			batch_x.x, c_out = self.deformer_block[gb].forward(batch_x)
 			if self.residual_change:
-				batch_c.x = 0.5 * (batch_c.x + c_out)
+				batch_c.x = self.activation(batch_c.x + c_out)
 			else:
 				batch_c.x = c_out
 			
 			c = batch_c.x
 			factor = 1#self.num_gbs - gb
-			self.laploss += self.criterionL(c_prev, c, batch_c.edge_index) * factor
-			dist1, dist2, idx1, _ = self.criterionC(c, gt)
-			self.closs += ChamferLoss.getChamferLoss(dist1, dist2) * factor
-			self.eloss += self.criterionE(c, batch_c.edge_index) * factor
-			self.nloss += self.criterionN(c, idx1, gt_normals, batch_c.edge_index) * factor
-		self.loss = self.closs + self.params.lambda_n*self.nloss + self.params.lambda_lap*self.laploss + self.params.lambda_e*self.eloss
+			if add_loss:
+				self.laploss += self.criterionL(c_prev, c, batch_c.edge_index) * factor
+				dist1, dist2, idx1, _ = self.criterionC(c, gt)
+				self.closs += ChamferLoss.getChamferLoss(dist1, dist2) * factor
+				self.eloss += self.criterionE(c, batch_c.edge_index) * factor
+				self.nloss += self.criterionN(c, idx1, gt_normals, batch_c.edge_index) * factor
+				self.loss = self.closs + self.params.lambda_n*self.nloss + self.params.lambda_lap*self.laploss + self.params.lambda_e*self.eloss
 		return batch_x, batch_c, Pid

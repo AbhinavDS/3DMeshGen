@@ -215,7 +215,8 @@ def dataGenerator(params):
 	f_meta = open(os.path.join(filepath,'meta_%s.dat'%suffix),'w')
 	f_meta.write(str(max_verts)+"\n")
 	f_meta.write(str(params.data_size)+"\n")
-	f_meta.write(str(max_total_verts))
+	f_meta.write(str(max_total_verts)+"\n")
+	f_meta.write(str(total_polygons))
 	f_meta.close()
 
 def drawPolygons(polygonsgt, proj_pred=None, proj_gt=None, color='red',out='out.png',A=None, line=None):

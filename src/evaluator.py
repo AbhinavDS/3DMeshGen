@@ -56,7 +56,7 @@ class Evaluator:
 			gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
 			gt_image_feats = torch.Tensor(gt_image_feats).type(dtypeF).requires_grad_(False)
 
-			x, c = self.model.forward(gt_image_feats, gt_vertices, gt_normals)
+			c = self.model.forward(gt_image_feats, gt_vertices, gt_normals, proj_gt)
 
 			total_closs += self.model.closs/num_iters
 			total_laploss += self.model.laploss/num_iters

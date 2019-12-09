@@ -72,6 +72,7 @@ def parse_args():
 	parser.add_argument('-ia','--initial_adders', default=2, type=int, help="Initial Adders")
 	# parser.add_argument('-gb','--gbottlenecks', default=1, type=int, help="The nums GBottleNecks in Deformer Block")
 	
+	parser.add_argument('-gb','--gbottlenecks2', default=1, type=int, help="The nums GBottleNecks in DeltaDeformer Block")
 
 	# General system running and configuration options
 	parser.add_argument('-l','--load_model_dirpath', type=str, default='', help='load model from path')
@@ -100,6 +101,18 @@ def parse_args():
 	parser.add_argument('-i','--iters_per_block', type=int, default=100, help='See variable name')
 	parser.add_argument('--load_rl_count', type=int, default=200, help='See variable name')
 
+
+	# RL
+	parser.add_argument('--policy', default="Gaussian", help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
+	parser.add_argument('--automatic_entropy_tuning', type=bool, default=False, metavar='G', help='Automaically adjust α (default: False)')
+	parser.add_argument('--seed', type=int, default=10, help='RL Seed')
+	parser.add_argument('--replay_size', type=int, default=1000000, metavar='N', help='size of replay buffer (default: 10000000)')
+	parser.add_argument('--start_steps', type=int, default=10000, metavar='N',
+                    help='Steps sampling random actions (default: 10000)')
+	parser.add_argument('--rl_num_episodes', type=int, default=100, metavar='N',
+                    help='Each iteration of end-to-end corresponds to these many rl episodes')
+	parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
+                    help='model updates per simulator step (default: 1)')
 
 
 	return parser.parse_args(namespace = args)

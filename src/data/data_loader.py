@@ -23,7 +23,9 @@ def getMetaData(params, data_dir):
 		data_size = int(line)
 		line = f.readline().strip()
 		max_total_vertices = int(line)
-	return max_vertices, max_total_vertices*params.feature_scale*params.dim_size, data_size, max_total_vertices
+		line = f.readline().strip()
+		max_polygons = int(line)
+	return max_vertices, max_total_vertices*params.feature_scale*params.dim_size, data_size, max_total_vertices, max_polygons
 
 
 def normalise(normal):

@@ -1,5 +1,5 @@
 """
-Module that builds the Pixel2Mesh
+Module that builds the Pixel2MeshRL
 """
 
 import torch 
@@ -9,18 +9,21 @@ from torch.nn.utils.weight_norm import weight_norm as wn
 
 from torch_geometric.data import Data, Batch
 from src.modules.deformer_block.deformer_block import DeformerBlock
+from src.modules.deformer_block.delta_deformer_block import DeltaDeformerBlock
+from src.modules.splitter_rl.rl_agent import RLAgent
 from src import dtypeF, dtypeL, dtypeB
 
-class Pixel2Mesh(nn.Module):
+class Pixel2MeshRL(nn.Module):
 
 	def __init__(self, params):
 
-		super(Pixel2Mesh, self).__init__()
+		super(Pixel2MeshRL, self).__init__()
 		self.device = params.device
 		self.params = params
 
 		self.db1 = DeformerBlock(self.params, self.params.gbottlenecks, self.params.initial_adders, False, weights_init='xavier', residual_change=False)
-		# db2 = DeltaDeformerBlock(self.params, self.params.num_gcns2, 0, False, residual_change=True)
+		self.rl_agent = RLAgent(self.params, self.max_polygons, agent='sac')
+		self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks, residual_change=True, weights_init = 'zero')
 
 	def create_start_data(self):
 		"""
@@ -51,12 +54,18 @@ class Pixel2Mesh(nn.Module):
 
 	def forward(self, image_features, gt, gt_normals, proj_gt, gt_edges = None):
 		init_batch_x, init_batch_c, init_batch_pid = self.create_start_data()
-		batch_x, batch_c, batch_pid = self.db1.forward(init_batch_x, init_batch_c, image_features, init_batch_pid, gt, gtnormals)
-		self.closs = self.db1.closs
-		self.nloss = self.db1.nloss
-		self.eloss = self.db1.eloss
-		self.laploss = self.db1.laploss
-		self.loss = self.db1.loss
+		batch_x, batch_c, batch_pid = self.db1.forward(init_batch_x, init_batch_c, image_features, init_batch_pid, gt, gt_normals)
+		if self.training:
+			data = (batch_x, batch_c, batch_pid)
+			batch_c = self.rl_agent.train(self.db2, data, image_features, gt, gt_normals, proj_gt, gt_edges)
+		else:
+			batch_c = self.rl_agent.eval(self.db2, data, image_features, proj_gt)
+
+		self.closs = self.db1.closs + self.db2.closs
+		self.nloss = self.db1.nloss + self.db2.nloss
+		self.eloss = self.db1.eloss + self.db2.eloss
+		self.laploss = self.db1.laploss + self.db2.laploss
+		self.loss = self.db1.loss + self.db2.loss
 
 		return batch_c
 		

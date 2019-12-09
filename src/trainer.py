@@ -74,8 +74,9 @@ class Trainer:
 				gt_vertices = torch.Tensor(gt_vertices).type(dtypeF).requires_grad_(False)
 				gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
 				gt_image_feats = torch.Tensor(gt_image_feats).type(dtypeF).requires_grad_(False)
+				gt_edges_tensor = torch.Tensor(gt_edges.tolist()).type(dtypeL).requires_grad_(False)
 
-				x, c = self.model.forward(gt_image_feats, gt_vertices, gt_normals)
+				c = self.model.forward(gt_image_feats, gt_vertices, gt_normals, proj_gt, gt_edges = gt_edges_tensor)
 
 				total_closs += self.model.closs/num_iters
 				total_laploss += self.model.laploss/num_iters
@@ -120,7 +121,7 @@ class Trainer:
 			gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
 			gt_image_feats = torch.Tensor(gt_image_feats).type(dtypeF).requires_grad_(False)
 
-			x, c = self.model.forward(gt_image_feats, gt_vertices, gt_normals)
+			c = self.model.forward(gt_image_feats, gt_vertices, gt_normals, proj_gt)
 
 			total_closs += self.model.closs/num_iters
 			total_laploss += self.model.laploss/num_iters
