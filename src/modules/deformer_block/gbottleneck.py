@@ -40,11 +40,11 @@ class GBottleNeck(nn.Module):
 	def __init__(self, feature_size, dim_size, depth, weights_init = 'normal'):
 		super(GBottleNeck, self).__init__()
 
-		resblock_layers = [GResBlock(feature_size, feature_size, weights_init = weights_init) for _ in range(depth)]
+		resblock_layers = nn.ModuleList([GResBlock(feature_size, feature_size, weights_init = weights_init) for _ in range(depth)])
 		self.blocks = nn.Sequential(*resblock_layers)
 		self.conv1 = GConv(2*feature_size, feature_size)
 		self.conv2 = GConv(feature_size, dim_size)
-		self.conv3 = nn.Linear(feature_size, dim_size)
+		# self.conv3 = nn.Linear(feature_size, dim_size)
 		#self.activation = nn.ReLU()
 		self.activation = nn.Tanh()
 		# self.dropout = nn.Dropout()
@@ -55,11 +55,11 @@ class GBottleNeck(nn.Module):
 	def zero_init(self):
 		nn.init.constant_(self.conv1.weight,0)
 		nn.init.constant_(self.conv2.weight,0)
-		nn.init.constant_(self.conv3.weight,0)
+		# nn.init.constant_(self.conv3.weight,0)
 
 	def forward(self, batch_x):
 		batch_x.x = self.dropout(self.activation(self.conv1(batch_x.x, batch_x.edge_index)))
 		batch_x = self.blocks(batch_x)
-		c = self.conv2(batch_x.x, batch_x.edge_index)
+		c = self.activation(self.conv2(batch_x.x, batch_x.edge_index))
 		#c = self.activation(self.conv3(batch_x.x))
 		return batch_x.x, c

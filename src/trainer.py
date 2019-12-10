@@ -14,7 +14,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/..')
 from src import dtypeF, dtypeL, dtypeB
 from src.util import utils
-from models.pixel2mesh import Pixel2Mesh as Model
+from src.models.pixel2mesh import Pixel2Mesh
+from src.models.pixel2mesh_rl import Pixel2MeshRL
 
 class Trainer:
 
@@ -24,7 +25,11 @@ class Trainer:
 		self.num_epochs = params.num_epochs
 		self.train_generator = train_generator
 		self.val_generator = val_generator
-		self.model = Model(params)
+		self.model = None
+		if self.params.rl_model:
+			self.model = Pixel2MeshRL(params)
+		else:
+			self.model = Pixel2Mesh(params)
 		self.device = self.params.device
 
 		# Can be changed to support different optimizers
@@ -66,17 +71,36 @@ class Trainer:
 			loss = 0.0
 			
 			for i in range(num_iters):
+				# print ("########################################3")
+				# if self.model.db1.projection.W_p.weight.grad is not None:
+				# 	print ("Before","db1.projection.W_p.weight", torch.max(self.model.db1.projection.W_p.weight.grad))
+				# else:
+				# 	print ("None db1 Before")
+				# if self.model.db2.projection.W_p.weight.grad is not None:
+				# 	print ("Before","db2.projection.W_p.weight", torch.max(self.model.db2.projection.W_p.weight.grad))
+				# else:
+				# 	print ("None db2 Before")
 
 				self.optimizer.zero_grad()
-
-				gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt = next(self.train_generator)
+				
+				# if self.model.db1.projection.W_p.weight.grad is not None:
+				# 	print ("After","db1.projection.W_p.weight", torch.max(self.model.db1.projection.W_p.weight.grad))
+				# else:
+				# 	print ("None db1 After")
+				# if self.model.db2.projection.W_p.weight.grad is not None:
+				# 	print ("Before","db2.projection.W_p.weight", torch.max(self.model.db2.projection.W_p.weight.grad))
+				# else:
+				# 	print ("None db2 After")
+				# print ("########################################3")
+				
+				gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt, gt_num_polygons = next(self.train_generator)
 				
 				gt_vertices = torch.Tensor(gt_vertices).type(dtypeF).requires_grad_(False)
 				gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
 				gt_image_feats = torch.Tensor(gt_image_feats).type(dtypeF).requires_grad_(False)
-				gt_edges_tensor = torch.Tensor(gt_edges.tolist()).type(dtypeL).requires_grad_(False)
+				gt_edges_tensor = torch.Tensor([list(gt_edges[i]) for i in range(len(gt_edges))]).type(dtypeL).requires_grad_(False)
 
-				c = self.model.forward(gt_image_feats, gt_vertices, gt_normals, proj_gt, gt_edges = gt_edges_tensor)
+				c = self.model.forward(gt_image_feats, gt_vertices, gt_normals, proj_gt, gt_edges = gt_edges_tensor, gt_num_polygons=gt_num_polygons)
 
 				total_closs += self.model.closs/num_iters
 				total_laploss += self.model.laploss/num_iters
@@ -91,7 +115,7 @@ class Trainer:
 				self.optimizer.step()
 				
 				if i % self.params.display_every == 0:
-					print(f'Train Epoch: {epoch}, Iteration: {i}, LR: {lr}, Loss: {self.model.loss}, CLoss: {self.model.closs}, NLoss: {self.model.nloss}, ELoss: {self.model.eloss}, LapLoss: {self.model.laploss}')
+					print(f'Train Epoch: {epoch}, Iteration: {i}, LR: {lr}, Loss: {self.model.loss:.4f}, CLoss: {self.model.closs:.4f}, NLoss: {self.model.nloss:.4f}, ELoss: {self.model.eloss:.4f}, LapLoss: {self.model.laploss:.4f}')
 					# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
 					utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../train_out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
 			
@@ -113,9 +137,7 @@ class Trainer:
 
 		for i in range(num_iters):
 
-			self.optimizer.zero_grad()
-
-			gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt = next(self.val_generator)
+			gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt, gt_num_polygons = next(self.val_generator)
 			
 			gt_vertices = torch.Tensor(gt_vertices).type(dtypeF).requires_grad_(False)
 			gt_normals = torch.Tensor(gt_normals).type(dtypeF).requires_grad_(False)
@@ -129,7 +151,7 @@ class Trainer:
 			total_eloss += self.model.eloss/num_iters
 			total_loss += self.model.loss/num_iters
 		
-		print(f'Validation Epoch: {epoch}, Val Epoch Loss: {total_loss}, Val Epoch CLoss: {total_closs}, Val Epoch NLoss: {total_nloss}, Val Epoch ELoss: {total_eloss}, Val EpochLapLoss: {total_laploss}')
+		print(f'Validation Epoch: {epoch}, Val Epoch Loss: {total_loss:.4f}, Val Epoch CLoss: {total_closs:.4f}, Val Epoch NLoss: {total_nloss:.4f}, Val Epoch ELoss: {total_eloss:.4f}, Val EpochLapLoss: {total_laploss:.4f}')
 		# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
 		utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../val_out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
 
@@ -189,6 +211,7 @@ class Trainer:
 
 		ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
 		self.model.load_state_dict(ckpt['state_dict'])
+		self.model.load_model(suffix=model_name)
 
 	def save_ckpt(self, save_best=False):
 
@@ -204,9 +227,12 @@ class Trainer:
 			'state_dict': self.model.state_dict(),
 			'params': self.params
 		}
-
+		# print(model_dict['state_dict'].keys())
+		# for name, param in self.model.named_parameters():
+		#     if param.requires_grad:
+		#         print (name)
 		torch.save(model_dict, ckpt_path)
-
+		self.model.save_model(suffix=model_name)
 		if save_best:
 			best_ckpt_path = os.path.join(self.params.ckpt_dir, '{}_best.ckpt'.format(model_name))
 			torch.save(model_dict, best_ckpt_path)

@@ -84,9 +84,9 @@ def parse_args():
 	parser.add_argument('-lr','--lr', type=float, default=1e-5, help='See variable name')
 	parser.add_argument('--step_size', type=int, default=100, help='See variable name')
 	parser.add_argument('--gamma', type=float, default=0.8, help='See variable name')
-	parser.add_argument('--lambda_n', type=float, default=1e-2, help='See variable name')
-	parser.add_argument('--lambda_lap', type=float, default=0.1, help='See variable name')
-	parser.add_argument('--lambda_e', type=float, default=0.05, help='See variable name')
+	parser.add_argument('--lambda_n', type=float, default=1e-3, help='See variable name')
+	parser.add_argument('--lambda_lap', type=float, default=1e-1, help='See variable name')
+	parser.add_argument('--lambda_e', type=float, default=5e-3, help='See variable name')
 	parser.add_argument('--train_dir', type=str, default='', help='See variable name')
 	parser.add_argument('--test_dir', type=str, default='', help='See variable name')
 	parser.add_argument('--val_dir', type=str, default='', help='See variable name')
@@ -103,16 +103,29 @@ def parse_args():
 
 
 	# RL
-	parser.add_argument('--policy', default="Gaussian", help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
+	parser.add_argument('--pixel2mesh', dest='rl_model', default=True, action='store_false', help='Runs Non RL pixel2mesh model.')
+	parser.add_argument('--rl_policy', default="Gaussian", help='Policy Type: Gaussian | Deterministic (default: Gaussian)')
 	parser.add_argument('--automatic_entropy_tuning', type=bool, default=False, metavar='G', help='Automaically adjust α (default: False)')
 	parser.add_argument('--seed', type=int, default=10, help='RL Seed')
 	parser.add_argument('--replay_size', type=int, default=1000000, metavar='N', help='size of replay buffer (default: 10000000)')
 	parser.add_argument('--start_steps', type=int, default=10000, metavar='N',
-                    help='Steps sampling random actions (default: 10000)')
+					help='Steps sampling random actions (default: 10000)')
 	parser.add_argument('--rl_num_episodes', type=int, default=100, metavar='N',
-                    help='Each iteration of end-to-end corresponds to these many rl episodes')
+					help='Each iteration of end-to-end corresponds to these many rl episodes')
 	parser.add_argument('--updates_per_step', type=int, default=1, metavar='N',
-                    help='model updates per simulator step (default: 1)')
+					help='model updates per simulator step (default: 1)')
+	parser.add_argument('--no_rl_eval', dest='rl_eval', default=True, action='store_false', help='Runs RL model as eval during training for some iterations.')
+
+
+	# SAC
+	parser.add_argument('--sac_gamma', type=float, default=0.99, metavar='G', help='discount factor for reward (default: 0.99)')
+	parser.add_argument('--sac_tau', type=float, default=0.005, metavar='G', help='target smoothing coefficient(τ) (default: 0.005)')
+	parser.add_argument('--sac_lr', type=float, default=0.0003, metavar='G', help='learning rate (default: 0.0003)')
+	parser.add_argument('--sac_alpha', type=float, default=0.2, metavar='G', help='Temperature parameter α determines the relative importance of the entropy\
+								term against the reward (default: 0.2)')
+	parser.add_argument('--target_update_interval', type=int, default=1, metavar='N', help='Value target update per no. of updates per step (default: 1)')
+	parser.add_argument('--rl_hidden_size', type=int, default=256, metavar='N', help='hidden size (default: 256)')
+
 
 
 	return parser.parse_args(namespace = args)

@@ -60,3 +60,5 @@ class Pixel2Mesh(nn.Module):
 
 		return batch_c
 		
+	def save(self, suffix=''):
+		pass

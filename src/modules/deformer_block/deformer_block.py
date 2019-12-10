@@ -25,7 +25,7 @@ class DeformerBlock(nn.Module):
 		self.residual_change = residual_change
 		assert (self.num_gbs > 0, "Number of gbs is 0")
 		
-		self.deformer_block = [GBottleNeck(self.params.feature_size, self.params.dim_size, self.params.gcn_depth, weights_init=weights_init).cuda() for _ in range(self.num_gbs)]
+		self.deformer_block = nn.ModuleList([GBottleNeck(self.params.feature_size, self.params.dim_size, self.params.gcn_depth, weights_init=weights_init).cuda() for _ in range(self.num_gbs)])
 		self.adder = VertexAdder().cuda()
 		self.projection = GProjection(self.params.feature_size, self.params.dim_size, weights_init = weights_init)
 
@@ -88,7 +88,7 @@ class DeformerBlock(nn.Module):
 				batch_c.x = c_out
 			
 			c = batch_c.x
-			factor = 1#self.num_gbs - gb
+			factor = 1 # self.num_gbs - gb
 			self.laploss += self.criterionL(c_prev, c, batch_c.edge_index) * factor
 			dist1, dist2, idx1, _ = self.criterionC(c, gt)
 			self.closs += ChamferLoss.getChamferLoss(dist1, dist2) * factor

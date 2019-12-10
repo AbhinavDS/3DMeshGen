@@ -30,10 +30,14 @@ def project_1d(polygons_data_line,params):
 	proj_data_line = np.expand_dims(proj_data_line,axis = 0)
 	return proj_data_line
 
+
+def scaleBackTensor(c):
+	return (c*VAR + MEAN)
+
 def scaleBack(c):
 	return (c*VAR + MEAN).tolist()
 
-def drawPolygons(polygons, polygonsgt, edgesgt, proj_pred=None, proj_gt=None, color='red',out='out.png',A=None, line=None):
+def drawPolygons(polygons, polygonsgt, edgesgt, proj_pred=None, proj_gt=None, color='red',out='out.png',A=None, line=None, text=None):
 	black = (0,0,0)
 	white=(255,255,255)
 	im = Image.new('RGB', (600, 620), white)
@@ -85,6 +89,10 @@ def drawPolygons(polygons, polygonsgt, edgesgt, proj_pred=None, proj_gt=None, co
 		x2 = x2*VAR + MEAN
 		y2 = y2*VAR + MEAN
 		draw.line(((x1,y1),(x2,y2)), width=5, fill=black)
+		if text is not None:
+			draw.text((10,10), f'({x1:2f},{y1:2f}) -> ({x2:2f},{y2:2f}) Reward: {text}', fill=black)
+		else:
+			draw.text((10,10), f'({x1:2f},{y1:2f}) -> ({x2:2f},{y2:2f})', fill=black)
 	im.save(out)
 
 

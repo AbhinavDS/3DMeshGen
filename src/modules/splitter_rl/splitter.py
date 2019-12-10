@@ -12,10 +12,11 @@ class Splitter:
 		# Find boolean flags for reward relevant to intersections with gt inside reward function
 
 		
-	def replace_edge(edge_index, edge1, edge2):
+	def replace_edge(self, edge_index, edge1, edge2):
 		#((a[0] == e[0]) & (a[1] == e[1])).unsqueeze(0).expand(2,-1)
 		assert(((edge_index[0] == edge1[0]) & (edge_index[1] == edge1[1])).sum().item() == 1)
-		edge_index[((edge_index[0] == edge1[0]) & (edge_index[1] == edge1[1])).unsqueeze(0).expand(2,-1)] = edge2
+
+		edge_index[((edge_index[0] == edge1[0]) & (edge_index[1] == edge1[1])).unsqueeze(0).expand(2,-1)] = edge2.squeeze(1)
 		return edge_index
 
 	def split(self, data, action):
@@ -39,6 +40,7 @@ class Splitter:
 
 		curr_pid = pid.x[intersect_pred_l[0]].item()
 		# Get mask for vertices in the intersecting polygon on left -  assume line < 0
+		p1,q1,p2,q2 = points
 		l_mask = (self.line(p1,q1,p2,q2,c.x[:,0],c.x[:,1]) < 0) & (pid.x.squeeze() == curr_pid)
 		r_mask = (self.line(p1,q1,p2,q2,c.x[:,0],c.x[:,1]) > 0) & (pid.x.squeeze() == curr_pid)
 
@@ -55,19 +57,25 @@ class Splitter:
 		old_edge1 = torch.Tensor([intersect_pred_l[0], intersect_pred_r[0]]).type_as(c.edge_index).unsqueeze(1)
 		old_edge1_r = torch.Tensor([intersect_pred_r[0], intersect_pred_l[0]]).type_as(c.edge_index).unsqueeze(1)
 		old_edge2 = torch.Tensor([intersect_pred_l[1], intersect_pred_r[1]]).type_as(c.edge_index).unsqueeze(1)
-		old_edge2_r = torch.Tensor([intersect_pred_r[1], intersect_pred_l[1]]).type_as(c.edge_inde.unsqueeze(1)x).unsqueeze(1)
+		old_edge2_r = torch.Tensor([intersect_pred_r[1], intersect_pred_l[1]]).type_as(c.edge_index).unsqueeze(1)
 		new_edge1 = torch.Tensor([intersect_pred_l[0], intersect_pred_l[1]]).type_as(c.edge_index).unsqueeze(1)
-		new_edge1_r = torch.Tensor([intersect_pred_l[1], intersect_pred_l[0]]).type_as(c.edge_inde.unsqueeze(1)x).unsqueeze(1)
-		new_edge1 = torch.Tensor([intersect_pred_r[0], intersect_pred_r[1]]).type_as(c.edge_index).unsqueeze(1)
+		new_edge1_r = torch.Tensor([intersect_pred_l[1], intersect_pred_l[0]]).type_as(c.edge_index).unsqueeze(1)
+		new_edge2 = torch.Tensor([intersect_pred_r[0], intersect_pred_r[1]]).type_as(c.edge_index).unsqueeze(1)
 		new_edge2_r = torch.Tensor([intersect_pred_r[1], intersect_pred_r[0]]).type_as(c.edge_index).unsqueeze(1)
-		c.edge_index = replace_edge(c.edge_index, old_edge1, new_edge1)
-		c.edge_index = replace_edge(c.edge_index, old_edge1_r, new_edge1_r)
-		c.edge_index = replace_edge(c.edge_index, old_edge2, new_edge2)
-		c.edge_index = replace_edge(c.edge_index, old_edge2_r, new_edge2_r)
-		c.edge_index = sort_edge_index(c.edge_index)
-		x.edge_index = c.edge_index.clone()
-		pid.edge_index = c.edge_index.clone()
 
+		c.edge_index = self.replace_edge(c.edge_index, old_edge1, new_edge1)
+		c.edge_index = self.replace_edge(c.edge_index, old_edge1_r, new_edge1_r)
+		c.edge_index = self.replace_edge(c.edge_index, old_edge2, new_edge2)
+		c.edge_index = self.replace_edge(c.edge_index, old_edge2_r, new_edge2_r)
+
+		c.edge_index = sort_edge_index(c.edge_index)[0].clone().detach()
+		x.edge_index = c.edge_index.clone().detach()
+		pid.edge_index = c.edge_index.clone().detach()
+
+		c.x = c.x.clone().detach()
+		x.x = x.x.clone().detach()
+		pid.x = pid.x.clone().detach()
+		
 		#update pid
 		max_pid = pid.x.max().item()
 		pid.x.squeeze()[l_mask] = max_pid + 1
@@ -85,7 +93,7 @@ class Splitter:
 		if not done:
 			# Agent says not done and it is actually not done
 			if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
-				reward += 20
+				reward += 0#20
 			# Agent says not done but it is actually done
 			else:
 				reward += -20
@@ -95,22 +103,31 @@ class Splitter:
 				reward += -40
 			# Agent says done and it is actually done
 			else:
-				reward += 20
+				reward += 0#20
 
+		print(done, reward)
 		self.flags = {'diff_polygons': False, 'num_intersections': 0, 'degenerate_split': False}
 		data, done = self.split(data, action)
-		_, _, num_intersect_gt = self.get_intersection(gt, gt_edges, points)
+		_, _, num_intersect_gt = self.get_intersection(gt.squeeze(0), gt_edges.squeeze(0).transpose(0,1), points)
 		gt_intersect = (num_intersect_gt > 0)
+
+
+		bounds = data[1].x[:,0].min(), data[1].x[:,1].min(), data[1].x[:,0].max(), data[1].x[:,1].max()
+
+		# Line should fall within bounds of pred polygons
+		if not ((points[0] > bounds[0] and points[1] > bounds[1] and points[0] < bounds[2] and points[1] < bounds[3]) and ((points[2] > bounds[0] and points[3] > bounds[1] and points[2] < bounds[2] and points[3] < bounds[3]))):
+			reward += -10
 
 		if not gt_intersect:
 			if self.flags['num_intersections'] == 0:
-				reward += 1
+				reward += 1 # Maybe this should be 0?
 			elif self.flags['diff_polygons']:
 				reward += 2
 			elif (self.flags['num_intersections'] != 2) or (self.flags['degenerate_split']):
 				reward += 6
 			else:
 				reward += 10
+				# print ("Good Split")
 		else:
 			if self.flags['num_intersections'] == 0:
 				reward += 0
@@ -120,6 +137,7 @@ class Splitter:
 				reward += 3
 			else:
 				reward += 5
+				# print ("OK Split")
 		add_loss = not gt_intersect
 		return data, reward, done, add_loss
 
@@ -128,8 +146,8 @@ class Splitter:
 
 		edge_index_l, edge_index_r = edge_index
 
-		x1, y1 = c[edge_index_l]
-		x2, y2 = c[edge_index_r]
+		x1, y1 = c[edge_index_l].transpose(0,1)
+		x2, y2 = c[edge_index_r].transpose(0,1)
 
 		[p1, q1, p2, q2] = points.tolist()
 

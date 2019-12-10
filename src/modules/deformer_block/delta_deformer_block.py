@@ -22,7 +22,7 @@ class DeltaDeformerBlock(nn.Module):
 		self.residual_change = residual_change
 		assert (self.num_gbs > 0, "Number of gbs is 0")
 		
-		self.deformer_block = [GBottleNeck(self.params.feature_size, self.params.dim_size, self.params.gcn_depth, weights_init=weights_init).cuda() for _ in range(self.num_gbs)]
+		self.deformer_block = nn.ModuleList([GBottleNeck(self.params.feature_size, self.params.dim_size, self.params.gcn_depth, weights_init=weights_init).cuda() for _ in range(self.num_gbs)])
 		self.adder = VertexAdder().cuda()
 		self.projection = GProjection(self.params.feature_size, self.params.dim_size, weights_init = weights_init)
 
@@ -47,6 +47,13 @@ class DeltaDeformerBlock(nn.Module):
 		self.nloss = 0.0
 		self.eloss = 0.0
 
+	def scaleLosses(self, factor):
+		self.loss *= factor
+		self.closs *= factor
+		self.laploss *= factor
+		self.nloss *= factor
+		self.eloss *= factor
+
 	def forward(self, batch_x, batch_c, image_features, Pid, gt, gt_normals, add_loss = True):
 		"""
 		Args:
@@ -58,9 +65,9 @@ class DeltaDeformerBlock(nn.Module):
 			gt:
 			gt_normals:
 		"""
-		for gb in range(self.num_gbs):
+		if add_loss:
 			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
-
+		for gb in range(self.num_gbs):
 			c_prev = batch_c.x
 			fetched_feature = self.projection(batch_c.x, image_features)
 			batch_x.x = torch.cat((batch_x.x,fetched_feature), dim = -1)

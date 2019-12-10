@@ -14,7 +14,8 @@ import sys
 sys.path.append(os.path.dirname(os.path.realpath(__file__)) + '/..')
 from src import dtypeF, dtypeL, dtypeB
 from src.util import utils
-from models.pixel2mesh import Pixel2Mesh as Model
+from src.models.pixel2mesh import Pixel2Mesh
+from src.models.pixel2mesh_rl import Pixel2MeshRL
 
 class Evaluator:
 
@@ -22,7 +23,10 @@ class Evaluator:
 
 		self.params = params
 		self.test_generator = test_generator
-		self.model = Model(params)
+		if self.params.rl_model:
+			self.model = Pixel2MeshRL(params)
+		else:
+			self.model = Pixel2Mesh(params)
 		self.device = self.params.device
 
 		self.log = params.log
@@ -64,7 +68,7 @@ class Evaluator:
 			total_eloss += self.model.eloss/num_iters
 			total_loss += self.model.loss/num_iters
 		
-		print(f'Evaluator: Loss: {total_loss}, CLoss: {total_closs}, NLoss: {total_nloss}, ELoss: {total_eloss}, LapLoss: {total_laploss}')
+		print(f'Evaluator: Loss: {total_loss:.4f}, CLoss: {total_closs:.4f}, NLoss: {total_nloss:.4f}, ELoss: {total_eloss:.4f}, LapLoss: {total_laploss:.4f}')
 		# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
 		utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../test_out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
 		
@@ -104,3 +108,4 @@ class Evaluator:
 
 		ckpt = torch.load(ckpt_path, map_location=lambda storage, loc: storage)
 		self.model.load_state_dict(ckpt['state_dict'])
+		self.model.load_model(suffix=model_name)

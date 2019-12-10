@@ -22,8 +22,10 @@ class Pixel2MeshRL(nn.Module):
 		self.params = params
 
 		self.db1 = DeformerBlock(self.params, self.params.gbottlenecks, self.params.initial_adders, False, weights_init='xavier', residual_change=False)
-		self.rl_agent = RLAgent(self.params, self.max_polygons, agent='sac')
-		self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks, residual_change=True, weights_init = 'zero')
+		self.rl_agent = RLAgent(self.params, self.params.max_polygons, agent='sac')
+		# self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks2, residual_change=True, weights_init = 'zero')
+		self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks2, residual_change=False, weights_init = 'xavier')
+		torch.autograd.set_detect_anomaly(True)
 
 	def create_start_data(self):
 		"""
@@ -44,8 +46,8 @@ class Pixel2MeshRL(nn.Module):
 		data_list_c = []
 		data_list_pid = []
 		for i in range(self.params.batch_size):
-			data_list_x.append(Data(x=torch.Tensor(x).type(dtypeF), edge_index=torch.Tensor(edge_index).type(dtypeL)))
-			data_list_c.append(Data(x=torch.Tensor(c).type(dtypeF), edge_index=torch.Tensor(edge_index).type(dtypeL)))
+			data_list_x.append(Data(x=torch.Tensor(x).type(dtypeF).requires_grad_(False), edge_index=torch.Tensor(edge_index).type(dtypeL).requires_grad_(False)))
+			data_list_c.append(Data(x=torch.Tensor(c).type(dtypeF).requires_grad_(False), edge_index=torch.Tensor(edge_index).type(dtypeL).requires_grad_(False)))
 			data_list_pid.append(Data(x=torch.zeros(c.shape[0],1).type(dtypeL).requires_grad_(False)))
 		batch_x = Batch.from_data_list(data_list_x)
 		batch_c = Batch.from_data_list(data_list_c)
@@ -55,17 +57,31 @@ class Pixel2MeshRL(nn.Module):
 	def forward(self, image_features, gt, gt_normals, proj_gt, gt_edges = None, gt_num_polygons = None):
 		init_batch_x, init_batch_c, init_batch_pid = self.create_start_data()
 		batch_x, batch_c, batch_pid = self.db1.forward(init_batch_x, init_batch_c, image_features, init_batch_pid, gt, gt_normals)
+
 		if self.training:
 			data = (batch_x, batch_c, batch_pid)
 			batch_c = self.rl_agent.train(self.db2, data, image_features, gt, gt_normals, proj_gt, gt_edges, gt_num_polygons)
+			# print (self.db1.closs, self.db2.closs)
+			# print (self.db1.nloss, self.db2.nloss)
+			# print (self.db1.eloss, self.db2.eloss)
+			# print (self.db1.laploss, self.db2.laploss)
+			# print (self.db1.loss, self.db2.loss)
 		else:
-			batch_c = self.rl_agent.eval(self.db2, data, image_features, proj_gt)
+			# batch_c = self.rl_agent.eval(self.db2, data, image_features, proj_gt)
+			pass
 
-		self.closs = self.db1.closs + self.db2.closs
-		self.nloss = self.db1.nloss + self.db2.nloss
-		self.eloss = self.db1.eloss + self.db2.eloss
-		self.laploss = self.db1.laploss + self.db2.laploss
-		self.loss = self.db1.loss + self.db2.loss
+
+		self.closs = self.db1.closs # + self.db2.closs
+		self.nloss = self.db1.nloss # + self.db2.nloss
+		self.eloss = self.db1.eloss # + self.db2.eloss
+		self.laploss = self.db1.laploss # + self.db2.laploss
+		self.loss = self.db1.loss # + self.db2.loss
 
 		return batch_c
+
+	def load_model(self, suffix=''):
+		self.rl_agent.agent.load_model(suffix=suffix)
+
+	def save_model(self, suffix=''):
+		self.rl_agent.agent.save_model(suffix=suffix)
 		
