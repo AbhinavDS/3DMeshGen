@@ -58,5 +58,6 @@ class VertexAdder(nn.Module):
 		batch_pid.x = new_pid.squeeze(0)
 		batch_x.edge_index = new_edge_index.clone()
 		batch_c.edge_index = new_edge_index.clone()
+		batch_pid.edge_index = new_edge_index.clone()
 
 		return batch_x, batch_c, batch_pid

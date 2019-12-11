@@ -119,7 +119,7 @@ def parse_args():
 
 	# SAC
 	parser.add_argument('--sac_gamma', type=float, default=0.99, metavar='G', help='discount factor for reward (default: 0.99)')
-	parser.add_argument('--sac_tau', type=float, default=0.005, metavar='G', help='target smoothing coefficient(τ) (default: 0.005)')
+	parser.add_argument('--sac_tau', type=float, default=0.05, metavar='G', help='target smoothing coefficient(τ) (default: 0.005)')
 	parser.add_argument('--sac_lr', type=float, default=0.0003, metavar='G', help='learning rate (default: 0.0003)')
 	parser.add_argument('--sac_alpha', type=float, default=0.2, metavar='G', help='Temperature parameter α determines the relative importance of the entropy\
 								term against the reward (default: 0.2)')

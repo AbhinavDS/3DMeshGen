@@ -55,7 +55,7 @@ class DeformerBlock(nn.Module):
 		self.nloss = 0.0
 		self.eloss = 0.0
 
-	def forward(self, batch_x, batch_c, image_features, Pid, gt, gt_normals):
+	def forward(self, batch_x, batch_c, image_features, Pid, gt, gt_normals, delta_mode = True, add_loss = False):
 		"""
 		Args:
 			c: coordinates
@@ -66,16 +66,22 @@ class DeformerBlock(nn.Module):
 			gt:
 			gt_normals:
 		"""
-		self.set_loss_to_zero()
+		if not delta_mode:
+			self.set_loss_to_zero()
 
-		for _ in range(self.initial_adders):
-			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
+		if delta_mode:
+			pass #batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
+		else:
+			for _ in range(self.initial_adders):
+				batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
 		
 		if self.embed:
 			batch_x.x = self.activation(self.embed_layer(batch_c.x))
 
 		for gb in range(self.num_gbs):
-			if gb + self.initial_adders < self.num_gbs:
+			if delta_mode:
+				gb = self.num_gbs - 1
+			if gb + self.initial_adders < self.num_gbs and not delta_mode:
 				batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
 
 			c_prev = batch_c.x
@@ -88,11 +94,14 @@ class DeformerBlock(nn.Module):
 				batch_c.x = c_out
 			
 			c = batch_c.x
+			if delta_mode:
+				return batch_x, batch_c, Pid
 			factor = 1 # self.num_gbs - gb
 			self.laploss += self.criterionL(c_prev, c, batch_c.edge_index) * factor
 			dist1, dist2, idx1, _ = self.criterionC(c, gt)
 			self.closs += ChamferLoss.getChamferLoss(dist1, dist2) * factor
 			self.eloss += self.criterionE(c, batch_c.edge_index) * factor
 			self.nloss += self.criterionN(c, idx1, gt_normals, batch_c.edge_index) * factor
+			
 		self.loss = self.closs + self.params.lambda_n*self.nloss + self.params.lambda_lap*self.laploss + self.params.lambda_e*self.eloss
 		return batch_x, batch_c, Pid

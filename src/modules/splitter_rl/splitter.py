@@ -43,7 +43,7 @@ class Splitter:
 		# Get mask for vertices in the intersecting polygon on left -  assume line < 0
 		p1,q1,p2,q2 = points
 		l_mask = (self.line(p1,q1,p2,q2,c.x[:,0],c.x[:,1]) < 0) & (pid.x.squeeze() == curr_pid)
-		r_mask = (self.line(p1,q1,p2,q2,c.x[:,0],c.x[:,1]) > 0) & (pid.x.squeeze() == curr_pid)
+		r_mask = (self.line(p1,q1,p2,q2,c.x[:,0],c.x[:,1]) >= 0) & (pid.x.squeeze() == curr_pid)
 
 		# Both new polygons should have more than 2 vertices
 		if l_mask.sum().item() <=2 or r_mask.sum().item() <=2:
@@ -64,14 +64,16 @@ class Splitter:
 		new_edge2 = torch.Tensor([intersect_pred_r[0], intersect_pred_r[1]]).type_as(c.edge_index).unsqueeze(1)
 		new_edge2_r = torch.Tensor([intersect_pred_r[1], intersect_pred_r[0]]).type_as(c.edge_index).unsqueeze(1)
 
-		c.edge_index = self.replace_edge(c.edge_index, old_edge1, new_edge1)
-		c.edge_index = self.replace_edge(c.edge_index, old_edge1_r, new_edge1_r)
-		c.edge_index = self.replace_edge(c.edge_index, old_edge2, new_edge2)
-		c.edge_index = self.replace_edge(c.edge_index, old_edge2_r, new_edge2_r)
+		new_edge_index = c.edge_index.clone().detach()
+		new_edge_index = self.replace_edge(new_edge_index, old_edge1, new_edge1)
+		new_edge_index = self.replace_edge(new_edge_index, old_edge1_r, new_edge1_r)
+		new_edge_index = self.replace_edge(new_edge_index, old_edge2, new_edge2)
+		new_edge_index = self.replace_edge(new_edge_index, old_edge2_r, new_edge2_r)
 
-		c.edge_index = sort_edge_index(c.edge_index)[0].clone().detach()
-		x.edge_index = c.edge_index.clone().detach()
-		pid.edge_index = c.edge_index.clone().detach()
+		new_edge_index = sort_edge_index(new_edge_index)[0]
+		c.edge_index = new_edge_index.clone().detach()
+		x.edge_index = new_edge_index.clone().detach()
+		pid.edge_index = new_edge_index.clone().detach()
 
 		c.x = c.x.clone().detach()
 		x.x = x.x.clone().detach()

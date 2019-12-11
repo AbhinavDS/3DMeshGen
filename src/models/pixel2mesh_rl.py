@@ -6,8 +6,9 @@ import torch
 from torch import nn as nn
 import numpy as np
 from torch.nn.utils.weight_norm import weight_norm as wn
-
+import math
 from torch_geometric.data import Data, Batch
+
 from src.modules.deformer_block.deformer_block import DeformerBlock
 from src.modules.deformer_block.delta_deformer_block import DeltaDeformerBlock
 from src.modules.splitter_rl.rl_agent import RLAgent
@@ -27,6 +28,8 @@ class Pixel2MeshRL(nn.Module):
 		self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks2, residual_change=False, weights_init = 'xavier')
 		torch.autograd.set_detect_anomaly(True)
 		self.start_steps = 0
+		self.num_iters = int(math.ceil(self.params.train_data_size/self.params.batch_size))
+		self.initial_train_iterations = self.num_iters * self.params.initial_train_epochs
 
 	def create_start_data(self):
 		"""
@@ -50,34 +53,37 @@ class Pixel2MeshRL(nn.Module):
 			data_list_x.append(Data(x=torch.Tensor(x).type(dtypeF).requires_grad_(False), edge_index=torch.Tensor(edge_index).type(dtypeL).requires_grad_(False)))
 			data_list_c.append(Data(x=torch.Tensor(c).type(dtypeF).requires_grad_(False), edge_index=torch.Tensor(edge_index).type(dtypeL).requires_grad_(False)))
 			data_list_pid.append(Data(x=torch.zeros(c.shape[0],1).type(dtypeL).requires_grad_(False)))
-		batch_x = Batch.from_data_list(data_list_x)
-		batch_c = Batch.from_data_list(data_list_c)
-		batch_pid = Batch.from_data_list(data_list_pid)
+		batch_x = data_list_x[0] #Batch.from_data_list(data_list_x)
+		batch_c = data_list_c[0] # Batch.from_data_list(data_list_c)
+		batch_pid = data_list_pid[0] # Batch.from_data_list(data_list_pid)
 		return batch_x, batch_c, batch_pid
 
 	def forward(self, image_features, gt, gt_normals, proj_gt, gt_edges = None, gt_num_polygons = None):
 		init_batch_x, init_batch_c, init_batch_pid = self.create_start_data()
-		batch_x, batch_c, batch_pid = self.db1.forward(init_batch_x, init_batch_c, image_features, init_batch_pid, gt, gt_normals)
-
+		batch_x, batch_c, batch_pid = self.db1.forward(init_batch_x, init_batch_c, image_features, init_batch_pid, gt, gt_normals, delta_mode = False)
 		if self.training:
 			data = (batch_x, batch_c, batch_pid)
-			if self.start_steps > self.params.initial_train_epochs:
+			if self.start_steps > self.initial_train_iterations:
 				batch_c = self.rl_agent.train(self.db2, data, image_features, gt, gt_normals, proj_gt, gt_edges, gt_num_polygons)
-			# print (self.db1.closs, self.db2.closs)
-			# print (self.db1.nloss, self.db2.nloss)
-			# print (self.db1.eloss, self.db2.eloss)
-			# print (self.db1.laploss, self.db2.laploss)
-			# print (self.db1.loss, self.db2.loss)
 		else:
-			# batch_c = self.rl_agent.eval(self.db2, data, image_features, proj_gt)
+			# Do not run splitter in  eval mode
 			pass
-
 
 		self.closs = self.db1.closs # + self.db2.closs
 		self.nloss = self.db1.nloss # + self.db2.nloss
 		self.eloss = self.db1.eloss # + self.db2.eloss
 		self.laploss = self.db1.laploss # + self.db2.laploss
 		self.loss = self.db1.loss # + self.db2.loss
+
+		if self.start_steps <= self.initial_train_iterations and self.training:
+			self.db2.set_loss_to_zero()
+			batch_x, batch_c, batch_pid = self.db2.forward(batch_x, batch_c, image_features, batch_pid, gt, gt_normals, add_loss = True)
+			self.closs += self.db2.closs
+			self.nloss += self.db2.nloss
+			self.eloss += self.db2.eloss
+			self.laploss += self.db2.laploss
+			self.loss += self.db2.loss
+			
 		self.start_steps += 1
 
 		return batch_c

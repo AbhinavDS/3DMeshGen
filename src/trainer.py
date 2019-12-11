@@ -71,27 +71,7 @@ class Trainer:
 			loss = 0.0
 			
 			for i in range(num_iters):
-				# print ("########################################3")
-				# if self.model.db1.projection.W_p.weight.grad is not None:
-				# 	print ("Before","db1.projection.W_p.weight", torch.max(self.model.db1.projection.W_p.weight.grad))
-				# else:
-				# 	print ("None db1 Before")
-				# if self.model.db2.projection.W_p.weight.grad is not None:
-				# 	print ("Before","db2.projection.W_p.weight", torch.max(self.model.db2.projection.W_p.weight.grad))
-				# else:
-				# 	print ("None db2 Before")
-
 				self.optimizer.zero_grad()
-				
-				# if self.model.db1.projection.W_p.weight.grad is not None:
-				# 	print ("After","db1.projection.W_p.weight", torch.max(self.model.db1.projection.W_p.weight.grad))
-				# else:
-				# 	print ("None db1 After")
-				# if self.model.db2.projection.W_p.weight.grad is not None:
-				# 	print ("Before","db2.projection.W_p.weight", torch.max(self.model.db2.projection.W_p.weight.grad))
-				# else:
-				# 	print ("None db2 After")
-				# print ("########################################3")
 				
 				gt_vertices, gt_normals, gt_edges, gt_image_feats, proj_gt, gt_num_polygons = next(self.train_generator)
 				
@@ -115,6 +95,7 @@ class Trainer:
 				self.optimizer.step()
 				
 				if i % self.params.display_every == 0:
+					
 					print(f'Train Epoch: {epoch}, Iteration: {i}, LR: {lr}, Loss: {self.model.loss:.4f}, CLoss: {self.model.closs:.4f}, NLoss: {self.model.nloss:.4f}, ELoss: {self.model.eloss:.4f}, LapLoss: {self.model.laploss:.4f}')
 					# proj_pred = utils.flatten_pred_batch(utils.scaleBack(c.x), A, self.params)
 					utils.drawPolygons(utils.scaleBack(c.x), utils.scaleBack(gt_vertices[0]), gt_edges[0], proj_pred=None, proj_gt=None, color='red',out=self.params.expt_res_dir+'/../train_out.png',A=to_dense_adj(c.edge_index).cpu().numpy()[0])
@@ -227,10 +208,12 @@ class Trainer:
 			'state_dict': self.model.state_dict(),
 			'params': self.params
 		}
+		
 		# print(model_dict['state_dict'].keys())
 		# for name, param in self.model.named_parameters():
 		#     if param.requires_grad:
 		#         print (name)
+		
 		torch.save(model_dict, ckpt_path)
 		self.model.save_model(suffix=model_name)
 		if save_best:

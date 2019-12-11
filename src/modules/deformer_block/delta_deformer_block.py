@@ -65,15 +65,16 @@ class DeltaDeformerBlock(nn.Module):
 			gt:
 			gt_normals:
 		"""
-		if add_loss:
-			batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
+		# if add_loss:
+		# 	batch_x, batch_c, Pid = self.adder.forward(batch_x, batch_c, Pid)
 		for gb in range(self.num_gbs):
 			c_prev = batch_c.x
 			fetched_feature = self.projection(batch_c.x, image_features)
 			batch_x.x = torch.cat((batch_x.x,fetched_feature), dim = -1)
-			batch_x.x, c_out = self.deformer_block[gb].forward(batch_x)
+			batch_x.x, c_out = self.deformer_block[gb].forward(batch_x, batch_c = batch_c)
 			if self.residual_change:
-				batch_c.x = self.activation(batch_c.x + c_out)
+				#batch_c.x = self.activation(batch_c.x + c_out)
+				batch_c.x = batch_c.x + c_out
 			else:
 				batch_c.x = c_out
 			

@@ -1,5 +1,5 @@
 import torch.nn as nn
-
+import torch
 # from torch_geometric.nn import GCNConv as GConv
 from torch_geometric.nn import GraphConv as GConv
 
@@ -30,7 +30,6 @@ class GResBlock(nn.Module):
 		# batch_x.x = (x + batch_x.x) * 0.5
 
 		x = self.dropout(self.activation(self.conv1(batch_x.x, batch_x.edge_index) + batch_x.x))
-		# x = self.dropout(self.activation(self.conv2(x, batch_x.edge_index) + batch_x.x))
 		batch_x.x = x
 
 		return batch_x
@@ -44,7 +43,6 @@ class GBottleNeck(nn.Module):
 		self.blocks = nn.Sequential(*resblock_layers)
 		self.conv1 = GConv(2*feature_size, feature_size)
 		self.conv2 = GConv(feature_size, dim_size)
-		# self.conv3 = nn.Linear(feature_size, dim_size)
 		#self.activation = nn.ReLU()
 		self.activation = nn.Tanh()
 		# self.dropout = nn.Dropout()
@@ -55,11 +53,10 @@ class GBottleNeck(nn.Module):
 	def zero_init(self):
 		nn.init.constant_(self.conv1.weight,0)
 		nn.init.constant_(self.conv2.weight,0)
-		# nn.init.constant_(self.conv3.weight,0)
+		nn.init.constant_(self.conv3.weight,0)
 
-	def forward(self, batch_x):
+	def forward(self, batch_x, batch_c = None):
 		batch_x.x = self.dropout(self.activation(self.conv1(batch_x.x, batch_x.edge_index)))
 		batch_x = self.blocks(batch_x)
 		c = self.activation(self.conv2(batch_x.x, batch_x.edge_index))
-		#c = self.activation(self.conv3(batch_x.x))
 		return batch_x.x, c
