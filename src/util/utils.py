@@ -90,7 +90,7 @@ def drawPolygons(polygons, polygonsgt, edgesgt, proj_pred=None, proj_gt=None, co
 		y2 = y2*VAR + MEAN
 		draw.line(((x1,y1),(x2,y2)), width=5, fill=black)
 		if text is not None:
-			draw.text((10,10), f'({x1:2f},{y1:2f}) -> ({x2:2f},{y2:2f}) Reward: {text}', fill=black)
+			draw.text((10,10), f'({x1:2f},{y1:2f}) -> ({x2:2f},{y2:2f}) {text}', fill=black)
 		else:
 			draw.text((10,10), f'({x1:2f},{y1:2f}) -> ({x2:2f},{y2:2f})', fill=black)
 	im.save(out)

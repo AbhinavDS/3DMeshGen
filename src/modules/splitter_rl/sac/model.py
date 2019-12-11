@@ -105,8 +105,8 @@ class GaussianPolicy(nn.Module):
 		log_prob -= torch.log(self.action_scale * (1 - y_t.pow(2)) + epsilon)
 		log_prob = log_prob.sum(1, keepdim=True)
 		mean = torch.tanh(mean) * self.action_scale + self.action_bias
-		print("ACTION MEAN")
-		print(mean)
+		#print("ACTION MEAN")
+		#print(mean)
 		return action, log_prob, mean
 
 	def to(self, device):

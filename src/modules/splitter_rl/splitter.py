@@ -6,8 +6,9 @@ from src import dtypeF, dtypeL, dtypeB
 from torch_geometric.utils import sort_edge_index
 
 class Splitter:
-	def __init__(self):
+	def __init__(self, params):
 		self.flags = {}
+		self.params = params
 		# Initialise Boolean flags for reward relevant to intersections with pred
 		# Find boolean flags for reward relevant to intersections with gt inside reward function
 
@@ -90,32 +91,41 @@ class Splitter:
 		points, done = action[:-1], action[-1]
 		done = (done > 0)
 		max_pred_pid = data[2].x.max().item()
-		if not done:
-			# Agent says not done and it is actually not done
-			if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
-				reward += 0#20
-			# Agent says not done but it is actually done
-			else:
-				reward += -20
-		else:
-			# Agent says done but it is actually not done
-			if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
-				reward += -40
-			# Agent says done and it is actually done
-			else:
-				reward += 0#20
+		# if not done:
+		# 	# Agent says not done and it is actually not done
+		# 	if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
+		# 		reward += 0#20
+		# 	# Agent says not done but it is actually done
+		# 	else:
+		# 		reward += -20
+		# else:
+		# 	# Agent says done but it is actually not done
+		# 	if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
+		# 		reward += -40
+		# 	# Agent says done and it is actually done
+		# 	else:
+		# 		reward += 0#20
 
-		print(done, reward)
+		#print(done, reward)
 		self.flags = {'diff_polygons': False, 'num_intersections': 0, 'degenerate_split': False}
 		data, done = self.split(data, action)
 		_, _, num_intersect_gt = self.get_intersection(gt.squeeze(0), gt_edges.squeeze(0).transpose(0,1), points)
 		gt_intersect = (num_intersect_gt > 0)
 
 
-		bounds = data[1].x[:,0].min(), data[1].x[:,1].min(), data[1].x[:,0].max(), data[1].x[:,1].max()
+		pred_bounds = data[1].x[:,0].min().item(), data[1].x[:,1].min().item(), data[1].x[:,0].max().item(), data[1].x[:,1].max().item()
+		gt_bounds = gt.squeeze(0)[:,0].min().item(), gt.squeeze(0)[:,1].min().item(), gt.squeeze(0)[:,0].max().item(), gt.squeeze(0)[:,1].max().item()
 
+		bounds = [(pred_bounds[b], gt_bounds[b]) for b in range(len(pred_bounds))]
+		bounds[0] = min(bounds[0])
+		bounds[1] = min(bounds[1])
+		bounds[2] = max(bounds[2])
+		bounds[3] = max(bounds[3])
+		
 		# Line should fall within bounds of pred polygons
-		if not ((points[0] > bounds[0] and points[1] > bounds[1] and points[0] < bounds[2] and points[1] < bounds[3]) and ((points[2] > bounds[0] and points[3] > bounds[1] and points[2] < bounds[2] and points[3] < bounds[3]))):
+		# if not ((points[0] > bounds[0] and points[1] > bounds[1] and points[0] < bounds[2] and points[1] < bounds[3]) and ((points[2] > bounds[0] and points[3] > bounds[1] and points[2] < bounds[2] and points[3] < bounds[3]))):
+		# 	reward += -10
+		if not ((points[0] > bounds[0] and points[0] < bounds[2]) and ((points[2] > bounds[0] and points[2] < bounds[2]))):
 			reward += -10
 
 		if not gt_intersect:

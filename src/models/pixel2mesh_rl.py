@@ -26,6 +26,7 @@ class Pixel2MeshRL(nn.Module):
 		# self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks2, residual_change=True, weights_init = 'zero')
 		self.db2 = DeltaDeformerBlock(self.params, self.params.gbottlenecks2, residual_change=False, weights_init = 'xavier')
 		torch.autograd.set_detect_anomaly(True)
+		self.start_steps = 0
 
 	def create_start_data(self):
 		"""
@@ -60,7 +61,8 @@ class Pixel2MeshRL(nn.Module):
 
 		if self.training:
 			data = (batch_x, batch_c, batch_pid)
-			batch_c = self.rl_agent.train(self.db2, data, image_features, gt, gt_normals, proj_gt, gt_edges, gt_num_polygons)
+			if self.start_steps > self.params.initial_train_epochs:
+				batch_c = self.rl_agent.train(self.db2, data, image_features, gt, gt_normals, proj_gt, gt_edges, gt_num_polygons)
 			# print (self.db1.closs, self.db2.closs)
 			# print (self.db1.nloss, self.db2.nloss)
 			# print (self.db1.eloss, self.db2.eloss)
@@ -76,6 +78,7 @@ class Pixel2MeshRL(nn.Module):
 		self.eloss = self.db1.eloss # + self.db2.eloss
 		self.laploss = self.db1.laploss # + self.db2.laploss
 		self.loss = self.db1.loss # + self.db2.loss
+		self.start_steps += 1
 
 		return batch_c
 

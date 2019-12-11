@@ -24,7 +24,7 @@ class RLAgent:
 		self.memory = ReplayMemory(params.replay_size)
 
 		# Splitter
-		self.splitter = Splitter()
+		self.splitter = Splitter(params)
 
 
 		#TensorboardX
@@ -43,7 +43,8 @@ class RLAgent:
 		self.action_space = spaces.Box( -1*np.ones(self.action_dim)*(self.max_abs_action), np.ones(self.action_dim)*(self.max_abs_action))
 		# self.observation_space_size = self.params.img_width*2 + self.params.feature_size
 		# self.observation_space_size = self.params.img_width + 2*(self.params.max_total_vertices+self.params.max_polygons)
-		self.observation_space_size = self.params.img_width//2 + 2*(self.params.max_total_vertices+self.params.max_polygons)
+		# self.observation_space_size = self.params.img_width//2 + 2*(self.params.max_total_vertices+self.params.max_polygons)
+		self.observation_space_size = self.params.img_width*2
 		print (self.observation_space_size)
 		self.agent = None
 		if agent == 'sac':
@@ -56,10 +57,11 @@ class RLAgent:
 		proj_pred = utils.flatten_pred(proj_vertices, proj_adj_mat, self.params)
 		proj_gt = np.squeeze(proj_gt, axis = 0)
 		normalized_img_features = (image_features.cpu().numpy().squeeze(0) - PAD_TOKEN)/(self.params.img_width - PAD_TOKEN)
-		# state = np.concatenate((proj_gt, proj_pred, normalized_img_features))
+		#state = np.concatenate((proj_gt, proj_pred, normalized_img_features))
+		state = np.concatenate((proj_gt, proj_pred))
 		# state = np.concatenate((proj_gt[::2], proj_pred[::2], normalized_img_features[:2*(self.params.max_total_vertices+self.params.max_polygons)]))
-		state = np.concatenate(((2*proj_gt-proj_pred)[::2], normalized_img_features[:2*(self.params.max_total_vertices+self.params.max_polygons)]))
-		state = 2 * state - 1
+		#state = np.concatenate(((2*proj_gt-proj_pred)[::2], normalized_img_features[:2*(self.params.max_total_vertices+self.params.max_polygons)]))
+		#state = 2 * state - 1
 		return state, proj_pred
 		
 	def seed(self):
@@ -88,7 +90,7 @@ class RLAgent:
 					for i in range(self.params.updates_per_step):
 						# Update parameters of all the networks
 						critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = self.agent.update_parameters(self.memory, self.params.batch_size, self.updates)
-
+						#print(critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha)
 						self.writer.add_scalar('loss/critic_1', critic_1_loss, self.updates)
 						self.writer.add_scalar('loss/critic_2', critic_2_loss, self.updates)
 						self.writer.add_scalar('loss/policy', policy_loss, self.updates)
@@ -114,6 +116,16 @@ class RLAgent:
 
 				# Ignore the "done" signal if it comes from hitting the time horizon.
 				# (https://github.com/openai/spinningup/blob/master/spinup/algos/sac/sac.py)
+				
+
+
+				done = True
+				
+
+
+
+
+
 				mask = 0 if episode_steps == self.max_steps else float(done)
 
 				self.memory.push(state, action, reward, next_state, mask) # Append transition to memory
@@ -122,7 +134,7 @@ class RLAgent:
 
 				# Terminate episode forcefully
 				done = done or (episode_steps >= self.max_steps)
-				# break
+				break
 
 			self.writer.add_scalar('reward/train', episode_reward, i_episode)
 			if i_episode % self.params.display_every == 0:
@@ -146,7 +158,7 @@ class RLAgent:
 
 					data, reward, done, _ = self.splitter.split_and_reward(data, action, gt, gt_edges, gt_num_polygons)
 
-					utils.drawPolygons(utils.scaleBack(data[1].x), utils.scaleBack(gt[0]), gt_edges[0], proj_pred=proj_pred, proj_gt=proj_gt[0], color='red',out=self.params.expt_res_dir+f'/../train_out_rl{episode_steps}.png',A=to_dense_adj(data[1].edge_index).cpu().numpy()[0], line=action[:4], text=f'Reward {reward}, Done {action[4]:4f}')
+					utils.drawPolygons(utils.scaleBack(data[1].x), utils.scaleBack(gt[0]), gt_edges[0], proj_pred=proj_pred, proj_gt=proj_gt[0], color='red',out=self.params.expt_res_dir+f'/../train_out_rl{episode_steps}.png',A=to_dense_adj(data[1].edge_index).cpu().numpy()[0], line=action[:4], text=f'Reward {reward}, Done {action[4]:4f}, Random: {self.params.start_steps > self.total_numsteps}')
 
 					data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = False)
 
@@ -156,6 +168,7 @@ class RLAgent:
 					
 					# Terminate episode forcefully
 					done = done or (episode_steps >= self.max_steps)
+					break
 
 				avg_reward += episode_reward
 			avg_reward /= episodes

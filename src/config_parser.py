@@ -124,7 +124,8 @@ def parse_args():
 	parser.add_argument('--sac_alpha', type=float, default=0.2, metavar='G', help='Temperature parameter α determines the relative importance of the entropy\
 								term against the reward (default: 0.2)')
 	parser.add_argument('--target_update_interval', type=int, default=1, metavar='N', help='Value target update per no. of updates per step (default: 1)')
-	parser.add_argument('--rl_hidden_size', type=int, default=256, metavar='N', help='hidden size (default: 256)')
+	parser.add_argument('--rl_hidden_size', type=int, default=1000, metavar='N', help='hidden size (default: 256)')
+	parser.add_argument('--initial_train_epochs', type=int, default=100, metavar='N', help='intial epochs for deformer training')
 
 
 
