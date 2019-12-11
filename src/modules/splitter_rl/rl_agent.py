@@ -85,11 +85,11 @@ class RLAgent:
 					action = self.action_space.sample() # Sample random action
 				else:
 					action = self.agent.select_action(state)  # Sample action from policy
-				if len(self.memory) > self.params.batch_size:
+				if len(self.memory) > self.params.rl_batch_size:
 					# Number of updates per step in environment
 					for i in range(self.params.updates_per_step):
 						# Update parameters of all the networks
-						critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = self.agent.update_parameters(self.memory, self.params.batch_size, self.updates)
+						critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha = self.agent.update_parameters(self.memory, self.params.rl_batch_size, self.updates)
 						#print(critic_1_loss, critic_2_loss, policy_loss, ent_loss, alpha)
 						self.writer.add_scalar('loss/critic_1', critic_1_loss, self.updates)
 						self.writer.add_scalar('loss/critic_2', critic_2_loss, self.updates)
@@ -100,6 +100,7 @@ class RLAgent:
 
 				data, reward, done, add_loss = self.splitter.split_and_reward(data, action, gt, gt_edges, gt_num_polygons)
 				deformer_block.set_loss_to_zero()
+				# add_loss = False
 				data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = add_loss)
 				if add_loss:
 					count_add_loss += 1.0
