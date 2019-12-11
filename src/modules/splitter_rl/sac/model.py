@@ -71,7 +71,15 @@ class GaussianPolicy(nn.Module):
 		self.mean_linear = nn.Linear(hidden_dim, num_actions)
 		self.log_std_linear = nn.Linear(hidden_dim, num_actions)
 
-		self.apply(weights_init_)
+		self.num_classes = 10
+        self.classify1 = nn.Linear(hidden_dim, self.num_classes+1)
+        self.classify2 = nn.Linear(hidden_dim, self.num_classes+1)
+        self.classify3 = nn.Linear(hidden_dim, self.num_classes+1)
+        self.classify4 = nn.Linear(hidden_dim, self.num_classes+1)
+        self.done_layer = nn.Linear(hidden_dim, 1)
+        self.softmax = nn.Softmax(-1)
+        self.classes = torch.Tensor([-1 + (1.0 - -1.0)*c/(self.num_classes) for c in range(self.num_classes+1)])
+        self.apply(weights_init_)
 
 		# action rescaling
 		if action_space is None:
@@ -88,7 +96,13 @@ class GaussianPolicy(nn.Module):
 		x = F.tanh(self.linear2(x))
 		# x = F.relu(self.linear1(state))
 		# x = F.relu(self.linear2(x))
-		mean = self.mean_linear(x)
+        x1 = self.softmax(self.classify1(x))*self.classes.unsqueeze(0).expand(x.size(0),-1).type_as(x).squeeze(1)
+        x2 = self.softmax(self.classify2(x))*self.classes.unsqueeze(0).expand(x.size(0),-1).type_as(x).squeeze(1)
+        y1 = self.softmax(self.classify3(x))*self.classes.unsqueeze(0).expand(x.size(0),-1).type_as(x).squeeze(1)
+        y2 = self.softmax(self.classify4(x))*self.classes.unsqueeze(0).expand(x.size(0),-1).type_as(x).squeeze(1)
+        done = self.done_layer(x).squeeze(1)
+        mean = torch.stack([x1,y1,x2,y2], dim = 1)
+        #mean = self.mean_linear(x)
 		log_std = self.log_std_linear(x)
 		log_std = torch.clamp(log_std, min=LOG_SIG_MIN, max=LOG_SIG_MAX)
 		return mean, log_std
