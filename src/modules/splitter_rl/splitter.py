@@ -91,20 +91,20 @@ class Splitter:
 		points, done = action[:-1], action[-1]
 		done = (done > 0)
 		max_pred_pid = data[2].x.max().item()
-		# if not done:
-		# 	# Agent says not done and it is actually not done
-		# 	if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
-		# 		reward += 0#20
-		# 	# Agent says not done but it is actually done
-		# 	else:
-		# 		reward += -20
-		# else:
-		# 	# Agent says done but it is actually not done
-		# 	if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
-		# 		reward += -40
-		# 	# Agent says done and it is actually done
-		# 	else:
-		# 		reward += 0#20
+		if not done:
+			# Agent says not done and it is actually not done
+			if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
+				reward += 0#20
+			# Agent says not done but it is actually done
+			else:
+				reward += -20
+		else:
+			# Agent says done but it is actually not done
+			if max_pred_pid + 1 < gt_num_polygons.squeeze(axis = 0):
+				reward += -40
+			# Agent says done and it is actually done
+			else:
+				reward += 0#20
 
 		#print(done, reward)
 		self.flags = {'diff_polygons': False, 'num_intersections': 0, 'degenerate_split': False}

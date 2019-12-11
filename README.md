@@ -28,10 +28,11 @@ Run following command from src folder.
 ```
 src/$ python3 main.py  --mode train --expt_res_base_dir ../../results --expt_name rl_pixel2mesh --train_dir ../../data/train/ --val_dir ../../data/val --test_dir ../../data/test/ --suffix complete --learning_rate_decay_every 10000  -n 50000 --display_every 10 --rl_num_episodes 2
 ```
-## Testing
+
+<!-- ## Testing
 ```
 src/$ python3 main.py  --mode eval --expt_res_base_dir ../../results --expt_name rl_pixel2mesh --train_dir ../../data/train --val_dir ../../data/val --test_dir ../../data/test --suffix complete --display_every 10
 ```
-
+ -->
 ## Miscellaneous
 * Intermediate results can be seen during training and testing in the results directory to track the progress.

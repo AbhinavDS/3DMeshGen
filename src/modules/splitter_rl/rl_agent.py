@@ -102,13 +102,13 @@ class RLAgent:
 				deformer_block.set_loss_to_zero()
 				# add_loss = False
 				data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = add_loss)
-				if add_loss:
-					count_add_loss += 1.0
-					# if deformer_block.projection.W_p.weight.grad is not None:
-					# 	print ("Before","db2.projection.W_p.weight", torch.max(deformer_block.projection.W_p.weight.grad))
-					deformer_block.loss.backward(retain_graph=True)
-					# print ("After","db2.projection.W_p.weight", torch.max(deformer_block.projection.W_p.weight.grad))
-					# print ("Seems to be working") # 
+				# if add_loss:
+				# 	count_add_loss += 1.0
+				# 	# if deformer_block.projection.W_p.weight.grad is not None:
+				# 	# 	print ("Before","db2.projection.W_p.weight", torch.max(deformer_block.projection.W_p.weight.grad))
+				# 	deformer_block.loss.backward(retain_graph=True)
+				# 	# print ("After","db2.projection.W_p.weight", torch.max(deformer_block.projection.W_p.weight.grad))
+				# 	# print ("Seems to be working") # 
 				
 				next_state, proj_pred = self.create_state(data, image_features, proj_gt)
 				episode_steps += 1
@@ -157,11 +157,15 @@ class RLAgent:
 					print (f'Episode Step {episode_steps}; Done {done}; Reward; {reward}')
 					action = self.agent.select_action(state, eval=True)
 
-					data, reward, done, _ = self.splitter.split_and_reward(data, action, gt, gt_edges, gt_num_polygons)
+					data, reward, done, add_loss = self.splitter.split_and_reward(data, action, gt, gt_edges, gt_num_polygons)
 
 					utils.drawPolygons(utils.scaleBack(data[1].x), utils.scaleBack(gt[0]), gt_edges[0], proj_pred=proj_pred, proj_gt=proj_gt[0], color='red',out=self.params.expt_res_dir+f'/../train_out_rl{episode_steps}.png',A=to_dense_adj(data[1].edge_index).cpu().numpy()[0], line=action[:4], text=f'Reward {reward}, Done {action[4]:4f}, Random: {self.params.start_steps > self.total_numsteps}')
-
-					data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = False)
+					deformer_block.set_loss_to_zero()
+					data = deformer_block.forward(data[0], data[1], image_features, data[2], gt, gt_normals, add_loss = add_loss)
+					if add_loss:
+						count_add_loss += 1.0
+						deformer_block.loss.backward(retain_graph=True)
+					
 
 					episode_reward += reward
 					episode_steps += 1
